@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 
-def NeighborhoodGraph(X,k_neighs, symm = True, pruning = True):
+def NeighborhoodGraph(X, k_neighs, symm = True, pruning = True):
     # construct obj with sklearn, metric eculidean
     neighbor = NearestNeighbors(n_neighbors=k_neighs)
     # training state [n_samples(cells),n_features(genes)]
@@ -14,12 +14,9 @@ def NeighborhoodGraph(X,k_neighs, symm = True, pruning = True):
     adj_matrix = adj_matrix.toarray()
     dist_matrix = dist_matrix.toarray()
     if symm:
-        print("make symmetric by ",end="")
         if pruning:
-            print("pruning")
             adj_matrix *= adj_matrix.T
         else:
-            print("adding")
             adj_matrix += adj_matrix.T
         # change 2 back to 1
         adj_matrix[adj_matrix.nonzero()[0],adj_matrix.nonzero()[1]] = 1
@@ -27,7 +24,7 @@ def NeighborhoodGraph(X,k_neighs, symm = True, pruning = True):
     return adj_matrix, dist_matrix
 
 
-def assign_weights(connectivities, distances, X_pca, velo_pca, scaling = 3, distance_scaler = 0.3, thresholding = 0):
+def assign_weights(connectivities, distances, X_pca, velo_pca, scaling = 3, distance_scalar = 0.3, threshold = 0):
     """\
     assigning weights for the graph
 
@@ -43,9 +40,10 @@ def assign_weights(connectivities, distances, X_pca, velo_pca, scaling = 3, dist
         input rna velocity data, dimension reduction version
     scaling
         Escalate the penalty
-    distance_scaler
+    distance_scalar
         Bias towards distance penalty 
-
+    threshold
+        Cut-off value for the angular difference
     Returns
     -------
     Returns adjacency matrix 
@@ -70,14 +68,14 @@ def assign_weights(connectivities, distances, X_pca, velo_pca, scaling = 3, dist
                 /(np.linalg.norm(express_j - express_i,2) * np.linalg.norm(velo_i,2))
                 
                 
-                if cos_theta > thresholding:
+                if cos_theta > threshold:
                     # distance penalty in [0,1]
                     ld = np.linalg.norm(express_j-express_i,2)/dmax
                     # direction penalty in [0,1]
                     ltheta = 1-cos_theta
                     
                     # considering the distance penalty and angular penalty
-                    adj_matrix[i,j] = (scaling * (ltheta + distance_scaler * ld)) ** scaling
+                    adj_matrix[i,j] = (scaling * (ltheta + distance_scalar * ld)) ** scaling
                 
                 else:
                     adj_matrix[i,j] = np.inf
@@ -88,9 +86,8 @@ def assign_weights(connectivities, distances, X_pca, velo_pca, scaling = 3, dist
             else:    
                 adj_matrix[i,j] = np.inf
     
-    max_weight = (scaling * (1 + distance_scaler))**scaling
-            
-    return adj_matrix, max_weight
+    
+    return adj_matrix
 
 
 

@@ -25,9 +25,9 @@ def cluster_cells(
 
     Returns
     -------
-    `adata.obs[key_added]`
+    `adata.obs[groups]`
         Array of dim (number of samples) that stores the subgroup id
-        (`'0'`, `'1'`, ...) for each cell.
+        (`0`, `1`, ...) for each cell.
     """
     from sklearn.cluster import KMeans
     from sklearn.decomposition import PCA
@@ -36,6 +36,7 @@ def cluster_cells(
 
     if 'groups' in adata.obs:
         print("Already conducted clustering")
+        return adata.obs["groups"].values.astype("int64")
     else:
         if n_clusters == None:
             n_clusters = int(adata.n_obs/10)
@@ -71,8 +72,10 @@ def cluster_cells(
         # /np.linalg.norm(velo_matrix,axis=1)[:,None]
         adata.obsm['X_pre_pca'] = pca.transform(X_pre)
         adata.obsm['velocity_pca'] = adata.obsm['X_pre_pca'] - X_pca
-        # adata.obs.insert(4, "groups", groups, False)    
+
         adata.obs['groups'] = groups.astype('int64')
+
+        return groups.astype('int64')
 
 def meta_cells(adata, kernel = 'rbf', alpha = 1, gamma = 0.3):
     """\
@@ -98,24 +101,24 @@ def meta_cells(adata, kernel = 'rbf', alpha = 1, gamma = 0.3):
 
     """
     
-    if 'groups' not in adata.obs and 'X_pca' not in adata.obsm:
-        print("please cluster cells with multraj.clustering.cluster_cells first") 
-    else:
-        from sklearn.kernel_ridge import KernelRidge
-        k = KernelRidge(alpha, kernel, gamma)
-        groups = np.array(adata.obs['groups'])
-        n_clusters = int(max(adata.obs['groups']) + 1)
-        X_pca = adata.obsm['X_pca']
-        X_cluster = np.zeros((n_clusters,X_pca.shape[1]))
-        velo_cluster = np.zeros(X_cluster.shape)
-        velo_pca = adata.obsm['velocity_pca']
+    if 'groups' not in adata.obs.columns or 'X_pca' not in adata.obsm:
+        raise ValueError("please cluster cells first") 
 
-        for c in range(n_clusters):
-            indices = np.where(groups == c)[0]
-            k.fit(X_pca[indices,:],velo_pca[indices,:])
-            X_cluster[c,:] = np.mean(X_pca[indices,:],axis=0)
-            velo_cluster[c,:] = k.predict(X_cluster[c,:][np.newaxis,:])
-        
-        return X_cluster, velo_cluster
+    from sklearn.kernel_ridge import KernelRidge
+    k = KernelRidge(alpha, kernel, gamma)
+    groups = adata.obs['groups'].values
+    n_clusters = int(np.max(groups) + 1)
+    X_pca = adata.obsm['X_pca']
+    X_cluster = np.zeros((n_clusters,X_pca.shape[1]))
+    velo_cluster = np.zeros(X_cluster.shape)
+    velo_pca = adata.obsm['velocity_pca']
+
+    for c in range(n_clusters):
+        indices = np.where(groups == c)[0]
+        k.fit(X_pca[indices,:],velo_pca[indices,:])
+        X_cluster[c,:] = np.mean(X_pca[indices,:],axis=0)
+        velo_cluster[c,:] = k.predict(X_cluster[c,:][np.newaxis,:])
+    
+    return X_cluster, velo_cluster
     
         

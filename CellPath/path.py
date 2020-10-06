@@ -6,7 +6,6 @@ def dijkstra_paths(adj, indeg = [0]):
         import networkx as nx
     except ImportError:
         print("please install networkx first")
-      
     G = nx.convert_matrix.from_numpy_matrix(A = np.where(adj == np.inf, 0, adj), create_using=nx.DiGraph)
     starts = [x for x,d in G.in_degree() if d in indeg]
     # # also can use
@@ -48,7 +47,7 @@ def floyd_warshall(adj):
         return paths, distance
 
 
-def _greedy_path_step(paths, max_w, opt_value, nodes_visit, threshold = 0.62, length_bias = None):
+def _greedy_path_step(paths, max_w, opt_value, nodes_visit, length_bias = None):
     """\
     greedily choose trajactory paths, one step.
 
@@ -62,8 +61,6 @@ def _greedy_path_step(paths, max_w, opt_value, nodes_visit, threshold = 0.62, le
         The output of floydWarshall algorithm, the optimal value for all-pair shortest path
     node_visit
         List that store the coverd nodes
-    threshold
-        parameter for quality control
     length_bias
         The bias on the path length for greedy selection
     Returns
@@ -113,8 +110,6 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
         number of nodes in the graph
     paths
         The output of floydWarshall algorithm, dictionary including all-pair shortest path
-    adj_matrix
-        adjacency matrix of the graph
     opt_value
         The output of floydWarshall algorithm, the optimal value for all-pair shortest path
     threshold
@@ -124,6 +119,7 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
     cut_off
         Minimal number of cell in path
     verbose
+        Output intermidate result
     length_bias
         The bias on the path length for greedy selection
     max_trajs
@@ -153,18 +149,11 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
     
     print("selected path (starting_ending):")
 
-    # max_w calculation
-    if max_w == None:
-        if adj_matrix == None:
-            raise ValueError('Please provide either adj_matrix or max_w')
-        else:
-            max_w = np.max(np.where(adj_matrix == np.inf, 0, adj_matrix))
-
     traj_count = 0
 
     while path_cover > 0:
 
-        path_idx, path_cover = _greedy_path_step(paths_tmp, max_w, opt_value, nodes_visit, threshold, length_bias)
+        path_idx, path_cover = _greedy_path_step(paths = paths_tmp, max_w = max_w, opt_value = opt_value, nodes_visit = nodes_visit, length_bias = length_bias)
 
         if path_cover != 0:
             del paths_tmp[path_idx]
