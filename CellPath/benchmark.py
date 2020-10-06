@@ -250,3 +250,32 @@ def kendalltau(pt_pred, pt_true):
     pt_pred = pt_pred.squeeze()
     tau, p_val = kendalltau(pt_pred, pt_true)
     return tau
+
+def cellpath_kt(cellpath_obj):
+    """\
+    Description
+        kendall tau correlationship for CellPath
+    
+    Parameters
+    ----------
+    cellpath_obj
+        Cellpath object
+    Returns
+    -------
+    kt
+        returned score    
+    """
+    if "sim_time" not in cellpath_obj.adata.obs.columns:
+        raise ValueError("ground truth value not provided")
+    
+    pseudo_order = cellpath_obj.pseudo_order
+    non_zeros = {}
+    pt_pred = {}
+    pt_true = {}
+    kt = {}
+    for icol, col in enumerate(pseudo_order.columns):
+        non_zeros[col] = np.where(~np.isnan(pseudo_order[col].values.squeeze()))[0]
+        pt_pred[col] = pseudo_order.iloc[non_zeros[col], icol].values.squeeze()
+        pt_true[col] = cellpath_obj.adata.obs["sim_time"].iloc[non_zeros[col]].values
+        kt[col] = kendalltau(pt_pred[col], pt_true[col])
+    return kt
