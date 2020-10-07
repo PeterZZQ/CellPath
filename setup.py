@@ -15,15 +15,24 @@ from setuptools import find_packages, setup, Command
 NAME = 'cellpath'
 DESCRIPTION = 'CellPath, multiple trajectories inference in single cell RNA-Seq data from RNA velocity'
 URL = 'https://github.com/PeterZZQ/CellPath'
-EMAIL = 'ziqi.zhang@gatech.edu'
+EMAIL = 'zhangziqibuaa@gmail.edu'
 AUTHOR = 'Ziqi Zhang'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.0'
+VERSION = '0.1dev'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'requests', 'maya', 'records',
-    'numpy', 'pandas', 'sklearn', 'scipy', 'anndata', 'scvelo', 'statsmodels', 'seaborn', 'rpy2' 
+    'numpy>=1.18.2', 
+    'scipy>=1.4.1', 
+    'pandas>=1.0.3', 
+    'scikit-learn>=0.22.1', 
+    'anndata>=0.7.1', 
+    'scvelo>=0.2.0', 
+    'statsmodels>=0.11.1', 
+    'seaborn>=0.10.0', 
+    'rpy2>=3.3.0',
+    'matplotlib>=3.2.1'
 ]
 
 # What packages are optional?
@@ -104,6 +113,8 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
+    # find_packages returns a list all Python packages found within directory `where`, default `where` should be `'.'`,  
+    # ‘exclude’ is a sequence of package names to exclude
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
@@ -114,16 +125,19 @@ setup(
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
-    license='MIT',
+    license='GNU General Public License v3 (GPLv3)',
     classifiers=[
         # Trove classifiers
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy'
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: MacOS :: MacOS X'
     ],
     # $ setup.py publish support.
     cmdclass={

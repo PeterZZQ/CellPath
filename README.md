@@ -42,10 +42,17 @@ git clone https://github.com/PeterZZQ/CellPaths.git
 And run 
 
 ```
-python setup.py
+pip install .
+```
+
+Uninstall using
+
+```
+pip uninstall cellpath
 ```
 
 ## Usage
+
 `run_cellpath.ipynb` provide a short pipeline of running cellpaths using **cycle-tree** trajectory dataset in the paper.
 
 ## Contents

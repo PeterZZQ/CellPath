@@ -4,18 +4,88 @@ import cellpath.princurve as pcurve
 import pandas as pd
 import cellpath.benchmark as bmk
 
-def add_arrow(line, position=None, arrow_line = True, direction='right', size=15, color=None):
+def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, **kwargs):
+    """\
+    Description
+        Plot original dataset
+    
+    Parameters
+    ----------
+    cellpath_obj
+        cellpath object
+    basis
+        the basis used for visualization
+    figsize
+        Figure size, tuple
+    save_as
+        Name of the saved file
+    """
+
+    _kwargs = {
+        "axis": False,
+        "legend_pos": "upper left",
+        "colormap": "tab20",
+    }
+    _kwargs.update(kwargs)
+
+    X = cellpath_obj.adata.obsm["X_" + basis]
+    fig = plt.figure(figsize = figsize)
+    ax = fig.add_subplot()
+    if _kwargs["axis"]:
+        ax.tick_params(axis = "both", direction = "out", labelsize = 16)
+        ax.set_xlabel(basis + " 1", fontsize = 19)
+        ax.set_ylabel(basis + " 2", fontsize = 19)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+    else:
+        ax.axis("off")
+
+    if "clusters" in cellpath_obj.adata.obs.columns:
+        cluster_anno = [x for x in cellpath_obj.adata.obs["clusters"].values]
+        cluster_uni = [x for x in np.unique(cellpath_obj.adata.obs["clusters"].values)]
+
+        colormap = plt.cm.get_cmap(_kwargs["colormap"], len(cluster_uni))
+
+        for count, clust in enumerate(cluster_uni):
+            idx = np.where(np.array(cluster_anno) == clust)[0]
+            ax.scatter(X[idx,0], X[idx,1], color = colormap(count), alpha = 0.7, label = clust)    
+        ax.legend(loc=_kwargs["legend_pos"], prop={'size': 15}, frameon = False, ncol = 1)
+    
+    elif "sim_time" in cellpath_obj.adata.obs.columns:
+        pic = ax.scatter(X[:,0], X[:,1], cmap = "gnuplot", c = cellpath_obj.adata.obs["sim_time"].values, alpha = 1)
+        cbar = fig.colorbar(pic, fraction=0.046, pad=0.04, ax = ax)
+        cbar.ax.tick_params(labelsize = 20)
+
+    else:
+        ax.scatter(X[:,0], X[:,1], color = "red", alpha = 0.7)
+
+    if save_as != None:
+        fig.savefig(save_as, bbox_inches = 'tight')
+
+
+def add_arrow(line, position = None, direction='right', **kwargs):
     """
     add an arrow to a line.
 
     line:       Line2D object
     position:   x-position of the arrow. If None, mean of xdata is taken
     direction:  'left' or 'right'
-    size:       size of the arrow in fontsize points
+    arrow_size:       size of the arrow in fontsize points
     color:      if None, line color is taken.
     """
-    if color is None:
+    _kwargs = {
+        "arrow_size": 15,
+        "linewidth": 2,
+        "alpha": 0.7,
+        "color": None,
+        "arrow_style": "->"
+    }
+    _kwargs.update(kwargs)
+
+    if _kwargs["color"] is None:
         color = line.get_color()
+    else:
+        color = _kwargs["color"]
 
     xdata = line.get_xdata()
     ydata = line.get_ydata()
@@ -31,20 +101,12 @@ def add_arrow(line, position=None, arrow_line = True, direction='right', size=15
         end_ind = 0
         start_ind = 1
 
-    if arrow_line:
-        line.axes.annotate('',
-            xytext=(xdata[start_ind], ydata[start_ind]),
-            xy=(xdata[end_ind], ydata[end_ind]),
-            arrowprops=dict(arrowstyle="->", color=color), # , linewidth = 4, alpha = 0.7
-            size=size
-        )
-    else:
-        line.axes.annotate('',
-            xytext=(xdata[start_ind], ydata[start_ind]),
-            xy=(xdata[end_ind], ydata[end_ind]),
-            arrowprops=dict(arrowstyle="-", color=color),
-            size=size
-        )
+    line.axes.annotate('',
+        xytext=(xdata[start_ind], ydata[start_ind]),
+        xy=(xdata[end_ind], ydata[end_ind]),
+        arrowprops=dict(arrowstyle = _kwargs["arrow_style"], color=color, linewidth = _kwargs["linewidth"], alpha = _kwargs["alpha"]),
+        size=_kwargs["arrow_size"]
+    )
 
 
 def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,20), save_as = None, title = None, axis = True):
@@ -161,7 +223,8 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
     plt.show()     
 
 
-def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4, figsize = (20,10), save_as = None, title = None, axis = True, cmap = "tab20b"):
+def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4, 
+                     figsize = (20,10), save_as = None, title = None, **kwargs):
     """\
     Description        
         Meta-cell-level trajectory visualization
@@ -180,22 +243,35 @@ def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4, figsize = (20,10), 
         Name of the saved file
     title
         The title name of the plot
-    axis
-        Show axis or not, boolean value
-    cmap
-        Colormap
     """
+    _kwargs = {
+        "arrow_size": 30,
+        "linewidth": 3,
+        "alpha": 1,
+        "color": None,
+        "arrow_style": "->",
+        "legend_pos": "upper right", 
+        "axis": False,
+        "colormap": "tab20b"    
+    }
+
+    _kwargs.update(kwargs)
 
     fig = plt.figure(figsize = figsize)
     ax = fig.add_subplot()
-    if not axis:
+
+    if _kwargs["axis"]:
+        ax.tick_params(axis = "both", direction = "out", labelsize = 16)
+        ax.set_xlabel(basis + " 1", fontsize = 19)
+        ax.set_ylabel(basis + " 2", fontsize = 19)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+    else:
         ax.axis('off')
 
     # get cmap
-    if cmap != None:
-        colormap = plt.cm.get_cmap(cmap, trajs)
-    else:
-        colormap = lambda i: np.random.rand(3,trajs)[:,i]
+    colormap = plt.cm.get_cmap(_kwargs["colormap"], trajs)
+
     # path_color = get_cmap(trajs, 'tab20b')
     if "X_" + basis not in cellpath_obj.adata.obsm:
         raise ValueError("please calculate " + basis + " first")
@@ -209,11 +285,6 @@ def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4, figsize = (20,10), 
 
     # draw clusters 
     ax.scatter(X_clust[0:-1:1,0], X_clust[0:-1:1,1], color = 'gray', alpha = 0.5)
-    ax.set_xlabel(basis + " 1", fontsize = 19)
-    ax.set_ylabel(basis + " 2", fontsize = 19)
-    ax.tick_params(axis = "both", direction = "out", labelsize = 16)
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
 
     # draw meta-cell trajectories
     for i in range(trajs):
@@ -226,11 +297,12 @@ def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4, figsize = (20,10), 
                 coord_pri = coord_x.copy()
             # new coord
             coord_x = X_clust[index,0:2]
-            line = plt.plot([coord_pri[0],coord_x[0]],[coord_pri[1],coord_x[1]],'o-', linewidth = 4, color = colormap(i), alpha = 0.7)
-            add_arrow(line[0], arrow_line = True, size=30, color=colormap(i))
+            line = plt.plot([coord_pri[0],coord_x[0]],[coord_pri[1],coord_x[1]],'o-', 
+                            linewidth = _kwargs["linewidth"], color = colormap(i), alpha = _kwargs["alpha"])
+            add_arrow(line[0], **_kwargs)
 
         line[0].set_label('Path '+str(i))
-        plt.legend(loc='upper right', prop={'size': 20}, frameon = False, ncol = 2)
+        plt.legend(loc = _kwargs["legend_pos"], prop = {'size': 20}, frameon = False, ncol = 2)
 
     if title != None:
         plt.title(title)

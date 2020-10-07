@@ -251,6 +251,7 @@ def kendalltau(pt_pred, pt_true):
     tau, p_val = kendalltau(pt_pred, pt_true)
     return tau
 
+
 def cellpath_kt(cellpath_obj):
     """\
     Description
@@ -267,7 +268,7 @@ def cellpath_kt(cellpath_obj):
     """
     if "sim_time" not in cellpath_obj.adata.obs.columns:
         raise ValueError("ground truth value not provided")
-    
+
     pseudo_order = cellpath_obj.pseudo_order
     non_zeros = {}
     pt_pred = {}

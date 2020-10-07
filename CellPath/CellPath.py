@@ -4,22 +4,68 @@ import cellpath.path as path
 import cellpath.nn as nn
 import cellpath.princurve as pcurve
 import cellpath.benchmark as bmk
-import matplotlib.pyplot as plt
 
 import numpy as np  
 import pandas as pd
-
+import scvelo as scv
+import scipy.sparse as sparse
 
 class CellPath():
-    def __init__(self, adata):
+    def __init__(self, adata, preprocess = True, **kwargs):
+        """\
+        Description
+            Initialize cellpath object
+        
+        Parameters
+        ----------       
+        adata
+            Anndata object, store the dataset
+        preprocess
+            dataset is processed or not, boolean
+        **kwargs
+            additional parameters for preprocessing
+        """
         self.adata = adata
-        self.metacell_graph = None
-        self.paths = None
-        self.greedy_order = None
+        if not sparse.issparse(adata.X):
+            self.adata.X = sparse.csr_matrix(self.adata.X)
+        
+        if preprocess != True:
+            print("preprocessing data using scvelo...")
+
+            _kwargs = {
+                "min_shared_genes": 20,
+                "n_top_genes": 1000,
+                "n_pcs": 30,
+                "n_neighbors": 30,
+                "velo_mode": "stochastic"
+            }
+            
+            _kwargs.update(kwargs)
+            scv.pp.filter_and_normalize(data = self.adata, 
+                                        min_shared_counts=_kwargs["min_shared_genes"], 
+                                        n_top_genes=_kwargs["n_top_genes"])
+
+            scv.pp.moments(data = self.adata, n_pcs = _kwargs["n_pcs"], n_neighbors = _kwargs["n_neighbors"])
+
+            if _kwargs["velo_mode"] == "stochastic":
+                scv.tl.velocity(data = self.adata, model = _kwargs["velo_mode"])
+
+            elif _kwargs["velo_mode"] == "dynamical":
+                scv.tl.recover_dynamics(data = self.adata)
+                scv.tl.velocity(data = self.adata, model = _kwargs["velo_mode"])
+
+                # remove nan genes
+                _velo_matrix = self.adata.layers['velocity'].copy()
+                _genes_subset = ~np.isnan(_velo_matrix).any(axis=0)
+                self.adata._inplace_subset_var(_genes_subset)
+
+            else:
+                raise ValueError("`velo_mode` can only be dynamical or stochastic")
 
     def meta_cell_construction(self, n_clusters = None, include_unspliced = True, standardize = True, **kwarg):
         """\
-        Constructing meta cell
+        Description
+            Constructing meta cell
 
         Parameters
         ----------
@@ -43,30 +89,35 @@ class CellPath():
         }
         _kwargs.update(kwarg)
 
+        # skip if already clustered
         self.groups = clust.cluster_cells(self.adata, n_clusters = n_clusters,
                                           n_comps = _kwargs["n_comps"], init = _kwargs["init"],
                                           n_init = _kwargs["n_init"], max_iter = _kwargs["max_iter"],
                                           tol = _kwargs["tol"], include_unspliced = include_unspliced,
                                           standardize = standardize)
 
+        # checked
         self.X_clust, self.velo_clust = clust.meta_cells(self.adata, kernel = _kwargs["kernel"], 
                                                          alpha = _kwargs["alpha"], gamma = _kwargs["gamma"])
 
         if _kwargs["verbose"] == True:
             print("Meta-cell constructed")
 
-    def meta_cell_graph(self, k_neighs = 10, **kwargs):
+    def meta_cell_graph(self, k_neighs = 10, pruning = False, **kwargs):
         """\
-        meta-cell level graph construction
+        Description
+            meta-cell level graph construction
 
         Parameters
         ----------
         k_neighs
-            number of neighbors for the neighborhood graph, default 10
+            Number of neighbors for the neighborhood graph, default 10
+        pruning
+            Pruning the network or not, boolean variable, affect the continuity of the trajectory. 
+            False (less fragmented paths) for most of the cases.
         """        
         _kwargs = {
             "symm": True,
-            "pruning": False,
             "scaling": 3,
             "distance_scalar": 0.5,
             "threshold": 0,
@@ -74,7 +125,7 @@ class CellPath():
         }
         _kwargs.update(kwargs)
 
-        _adj_matrix, _dist_matrix = nn.NeighborhoodGraph(self.X_clust, k_neighs = 10, symm = _kwargs["symm"], pruning=_kwargs["pruning"])
+        _adj_matrix, _dist_matrix = nn.NeighborhoodGraph(self.X_clust, k_neighs = 10, symm = _kwargs["symm"], pruning = pruning)
         self.adj_assigned = nn.assign_weights(connectivities = _adj_matrix, distances = _dist_matrix, X_pca = self.X_clust, 
                                                                velo_pca = self.velo_clust, scaling = _kwargs["scaling"], 
                                                                distance_scalar = _kwargs["distance_scalar"], threshold = _kwargs["threshold"])
@@ -85,7 +136,8 @@ class CellPath():
     
     def meta_paths_finding(self, threshold = 0.5, cutoff_length = 5, length_bias = 0.7, **kwargs):
         """\
-        meta-cell level trajectory finding
+        Description
+            meta-cell level trajectory finding
 
         Parameters
         ----------
@@ -113,7 +165,8 @@ class CellPath():
             
     def first_order_pt(self, num_trajs = None, verbose = True):
         """\
-        cell level pseudo-time inference using first order approximation
+        Description
+            cell level pseudo-time inference using first order approximation
 
         Parameters
         ----------
@@ -156,7 +209,8 @@ class CellPath():
                    threshold = 0.5, cutoff_length = 5, 
                    length_bias = 0.7, num_trajs = None, **kwargs):
         """\
-        run CellPath in one function
+        Description
+            run CellPath in one function
 
         Parameters
         ----------

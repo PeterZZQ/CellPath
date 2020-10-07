@@ -69,16 +69,14 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
         return y_full, y_reduced, lr_pvalue
     
 
-def de_analy(adata, pseudo_order, p_val_t = 0.05, verbose = False):
+def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, count_type = "10X"):
     """\
     Conduct differentially expressed gene analysis.
 
     Parameters
     ----------
-    adata
-        data structure that store the gene expression value
-    pseudo_order
-        the pseudo-time ordering obtained from the trajectory inference algorithm
+    cellpath_obj
+        cellpath object
     p_val_t
         the threshold of p-value
     verbose
@@ -89,46 +87,59 @@ def de_analy(adata, pseudo_order, p_val_t = 0.05, verbose = False):
     de_genes
         dictionary that store the differentially expressed genes
     """ 
+
+    adata = cellpath_obj.adata
+    pseudo_order = cellpath_obj.pseudo_order
+
     de_genes = {}
-    for reconst_i in pseudo_order.keys():
+    for reconst_i in pseudo_order.columns:
         de_genes[reconst_i] = []
-        ordering = pseudo_order[reconst_i]
-        adata_i =anndata.AnnData(X = adata[ordering,:].X, obs= adata[ordering,:].obs[[]], var= adata[ordering,:].var[[]])
-        for idx, gene in enumerate(adata_i.var.index):
-            gene_dynamic = np.squeeze(adata_i[:,gene].X.toarray())
-            pse_t = np.arange(gene_dynamic.shape[0])[:,np.newaxis]
+        sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
+        ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        # before log-transform?
+        X_traj = adata[ordering, :].layers["spliced"].toarray()
+
+        for idx, gene in enumerate(adata.var.index):
+            gene_dynamic = np.squeeze(X_traj[:,idx])
+            pse_t = np.arange(gene_dynamic.shape[0])[:,None]
+
             # 10x dataset uses UMI count, de and dg are all created using 10x, and SMART-Seq use relative expression count, FKPM/TPM
             # With UMI count the distribution follows negative binomial, and the FKPM count follows the log-normal distribution, most use 10x
-            gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.NegativeBinomial())
-            # sm.families.Gaussian(link = sm.families.links.log())
+            if count_type == "10X":
+                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.NegativeBinomial())
+            elif count_type == "SMART-SEQ":
+                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.Gaussian(link = sm.families.links.log()))
+            else:
+                raise ValueError("count_type can only be `10X` or `SMART-SEQ`")
+
             if p_val != None:
                 if verbose:
                     print("gene: ", gene, ", pvalue = ", p_val)
                 if p_val <= p_val_t:
                     de_genes[reconst_i].append({"gene": gene, "regression": gene_pred, "null": gene_null,"p_val": p_val})
-        
+
         # sort according to the p_val
         de_genes[reconst_i] = sorted(de_genes[reconst_i], key=lambda x: x["p_val"],reverse=False)
 
     return de_genes
 
-def de_plot(adata, pseudo_order, de_genes, figsize = (20,40), n_genes = 20, prefix = None):
+
+
+def de_plot(cellpath_obj, de_genes, figsize = (20,40), n_genes = 20, save_path = None):
     """\
     Plot differentially expressed gene.
 
     Parameters
     ----------
-    adata
-        data structure that store the gene expression value
-    pseudo_order
-        the pseudo-time ordering obtained from the trajectory inference algorithm
+    cellpath_obj
+        cellpath object
     de_genes
         dictionary that store the differentially expressed genes
     figsize
         figure size
     n_genes
         the number of genes to keep
-    prefix
+    save_path
         the saving directory 
     """ 
     import os
@@ -139,14 +150,18 @@ def de_plot(adata, pseudo_order, de_genes, figsize = (20,40), n_genes = 20, pref
     ncols = 2
     nrows = np.ceil(n_genes/2).astype('int32')
 
+    adata = cellpath_obj.adata
+    pseudo_order = cellpath_obj.pseudo_order
+
     for reconst_i in de_genes.keys():
         # ordering of genes
-        ordering = pseudo_order[reconst_i]
-        adata_i =anndata.AnnData(X = adata[ordering,:].X, obs= adata[ordering,:].obs[[]], var= adata[ordering,:].var[[]])
+        sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
+        ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        adata_i = adata[ordering, :]
 
         # create directory
-        if prefix != None:
-            directory = prefix + reconst_i + "/"
+        if save_path != None:
+            directory = save_path + reconst_i + "/"
             if not os.path.exists(os.path.dirname(directory)):
                 try:
                     os.makedirs(os.path.dirname(directory))
@@ -157,64 +172,62 @@ def de_plot(adata, pseudo_order, de_genes, figsize = (20,40), n_genes = 20, pref
         fig, axs = plt.subplots(nrows = nrows, ncols = ncols, figsize = figsize)
         colormap = plt.cm.get_cmap('tab20b', n_genes)
         for idx, gene in enumerate(de_genes[reconst_i][:n_genes]):
-            gene_dynamic = np.squeeze(adata_i[:,gene['gene']].X.toarray())
+            # plot log transformed version
+            gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].layers["spliced"].toarray())
             pse_t = np.arange(gene_dynamic.shape[0])[:,np.newaxis]
 
             gene_null = gene['null']
             gene_pred = gene['regression']
 
-            axs[idx%nrows, idx//nrows].scatter(np.arange(gene_dynamic.shape[0]), gene_dynamic, c = colormap(idx), alpha = 0.7)
+            axs[idx%nrows, idx//nrows].scatter(np.arange(gene_dynamic.shape[0]), gene_dynamic, color = colormap(idx), alpha = 0.7)
             axs[idx%nrows, idx//nrows].plot(pse_t, gene_pred, color = "black", alpha = 1)
             axs[idx%nrows, idx//nrows].plot(pse_t, gene_null, color = "red", alpha = 1)
             axs[idx%nrows, idx//nrows].set_title(gene['gene'])
         
-        if prefix != None:
+        if save_path != None:
             fig.savefig(directory + "de.pdf", bbox_inches = 'tight')
     # store the gene_id result
-    if prefix != None:
+    if save_path != None:
         import json
         gene_names_ordered = {}
         for reconst_i in de_genes.keys():
             gene_names_ordered[reconst_i] = [{"gene_id": gene["gene"], "p_val": gene["p_val"]} for gene in de_genes[reconst_i]]
-        with open(prefix + "de_genes_ordered.json","w") as fp:
+        with open(save_path + "de_genes_ordered.json","w") as fp:
             json.dump(gene_names_ordered, fp)
                 
 
 
-def de_heatmap(adata, pseudo_order, de_genes, figsize = (20,10), n_genes = 20, prefix = "./real_results/pe/"):
+def de_heatmap(cellpath_obj, de_genes, figsize = (20,10), n_genes = 20, save_path = None):
     """\
     Heatmap of differentially expressed gene analysis.
 
     Parameters
     ----------
-    adata
-        data structure that store the gene expression value
-    pseudo_order
-        the pseudo-time ordering obtained from the trajectory inference algorithm
+    cellpath_obj
+        cellpath object
     de_genes
         dictionary that store the differentially expressed genes
     figsize
         figure size
     n_genes
         the number of genes to keep
-    prefix
+    save_path
         the saving directory 
-
-    Returns
-    -------
-    de_genes
-        dictionary that store the differentially expressed genes
     """ 
     import seaborn as sns
     import pandas as pd
     save_as = "/gene_pt.pdf"
-    for reconst_i in pseudo_order.keys():
-        ordering = pseudo_order[reconst_i]
-        adata_i = anndata.AnnData(X = adata[ordering,:].X, obs= adata[ordering,:].obs[[]], var= adata[ordering,:].var[[]])
+    adata = cellpath_obj.adata
+
+    for reconst_i in de_genes.keys():
+        sorted_pt = cellpath_obj.pseudo_order[reconst_i].dropna(axis = 0).sort_values()
+        ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        adata_i = adata[ordering, :]
         idices = [gene['gene'] for gene in de_genes[reconst_i][:n_genes]]
         adata_i = adata_i[:,idices]
         heatmap_data = pd.DataFrame(data = np.array([np.squeeze(adata_i[:,hv_gene].X.toarray()) for hv_gene in adata_i.var.index]), index = adata_i.var.index)
         fig = plt.figure(figsize = figsize)
         ax = fig.add_subplot()
         sns.heatmap(heatmap_data, ax = ax)
-        fig.savefig(prefix + reconst_i + save_as)
+        if save_path != None:
+            fig.savefig(save_path + reconst_i + save_as)
