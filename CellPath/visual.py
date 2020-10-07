@@ -168,8 +168,8 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
             pseudo_visual = axs[i%nrows, i//nrows].scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'), alpha = 0.7)
 
             axs[i%nrows, i//nrows].set_title("CellPaths: Path " + str(i), fontsize = 25)
-            axs[i%nrows, i//nrows].set_xlabel(basis + " 1", fontsize = 19)
-            axs[i%nrows, i//nrows].set_ylabel(basis + " 2", fontsize = 19)
+            axs[i%nrows, i//nrows].set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
+            axs[i%nrows, i//nrows].set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs[i%nrows, i//nrows].set_xticks([])
             axs[i%nrows, i//nrows].set_yticks([])
             axs[i%nrows, i//nrows].spines['right'].set_visible(False)
@@ -187,8 +187,8 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
             pseudo_visual = axs.scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'),alpha = 0.7)
 
             axs.set_title("CellPaths: Path " + str(i), fontsize = 25)
-            axs.set_xlabel(basis + " 1", fontsize = 19)
-            axs.set_ylabel(basis + " 2", fontsize = 19)
+            axs.set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
+            axs.set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs.set_xticks([])
             axs.set_yticks([])
             axs.spines['right'].set_visible(False)
@@ -205,8 +205,8 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
             pseudo_visual = axs[i].scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'),alpha = 0.7)
             
             axs[i].set_title("CellPaths: Path " + str(i), fontsize = 25)
-            axs[i].set_xlabel(basis + " 1", fontsize = 19)
-            axs[i].set_ylabel(basis + " 2", fontsize = 19)
+            axs[i].set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
+            axs[i].set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs[i].set_xticks([])
             axs[i].set_yticks([])
             axs[i].spines['right'].set_visible(False)
