@@ -10,6 +10,23 @@ import pandas as pd
 import scvelo as scv
 import scipy.sparse as sparse
 
+def pairwise_distances(x, y):
+    """\
+    Description
+        Calculate the pairwise distance given two feature matrices x and y
+    Parameters
+    ----------
+    x
+        feature matrix of dimension (n_obs_x, n_features)
+    y
+        feature matrix of dimension (n_obs_y, n_features)
+    """
+    x_norm = np.sum(x**2, axis = 1)[:, None]
+    y_norm = np.sum(y**2, axis = 1)[None, :]
+    
+    dist = x_norm + y_norm - 2.0 * np.matmul(x, y.T)
+    return np.where(dist <= 0.0, 0.0, dist)
+
 class CellPath():
     def __init__(self, adata, preprocess = True, **kwargs):
         """\
@@ -161,8 +178,65 @@ class CellPath():
                                                               max_w=self.max_weight, cut_off=cutoff_length, 
                                                               verbose = _kwargs["verbose"], length_bias = length_bias, 
                                                               max_trajs = _kwargs["max_trajs"])
-            
-    def first_order_pt(self, num_trajs = None, verbose = True):
+
+
+
+    def cells_insertion(self, num_trajs = None):
+        """\
+        Description
+            Inserting unassigned cells
+
+        Parameters
+        ----------
+        num_trajs
+            Number of trajectories
+        verbose
+            Output result
+        """     
+        if num_trajs == None:
+            num_trajs = len(self.greedy_order)
+        elif num_trajs > len(self.greedy_order):
+            print(len(self.greedy_order))
+
+        # assigned cells
+        cell_pools = set([])
+        clust_pools = set([])
+
+        for i in range(num_trajs):
+            traj = []
+            for index in self.paths[self.greedy_order[i]]: 
+                clust_pools.add(index)  
+
+                # find the cells corresponding to the cluster in greedy paths
+                group_i = np.where(self.groups == index)[0]
+                # ordering the cells
+                diff = self.adata.obsm['X_pca'][group_i,:] - self.X_clust[index,:] 
+                group_i = group_i[np.argsort(np.dot(diff, self.velo_clust[index,:])/np.linalg.norm(self.velo_clust[index,:],2))]
+
+                # traj store all the cells in the trajectory/greedy paths
+                traj = np.append(traj, group_i)
+
+            # incorporate all the cells in traj
+            cell_pools = cell_pools.union(set(traj))
+        
+        # uncovered cells
+        cell_uncovered = list(set([x for x in range(self.adata.n_obs)]) - cell_pools)
+
+        # cell_uncovered by meta-cell distance matrix calculation
+        X_pca = self.adata.obsm["X_pca"]
+        uncovered_pca = X_pca[cell_uncovered, :]
+
+        covered_clust = self.X_clust[list(clust_pools), :]
+        pdist = pairwise_distances(uncovered_pca, covered_clust)
+
+        # choose meta-cell for each cell
+        meta_cells = [list(clust_pools)[x] for x in np.argmin(pdist, axis = 1)]
+
+        # assign cells to the closest meta-cell
+        self.groups[cell_uncovered] = meta_cells
+
+
+    def first_order_pt(self, num_trajs = None, insertion = False, verbose = True):
         """\
         Description
             cell level pseudo-time inference using first order approximation
@@ -171,6 +245,8 @@ class CellPath():
         ----------
         num_trajs
             Number of trajectories
+        insertion
+            Inserting cells to the nearby meta-cell, boolean
         verbose
             Output result
         """ 
@@ -180,6 +256,11 @@ class CellPath():
             print(len(self.greedy_order))
             raise ValueError("number of trajectory to be selected larger than maximum number")
         self.pseudo_order = pd.DataFrame(data = np.nan, index = self.adata.obs.index, columns = ["traj_" + str(x) for x in range(num_trajs)]) 
+
+        if insertion:
+            # inserting uncovered cells to the nearby meta-cells
+            self.cells_insertion(num_trajs = num_trajs)
+
 
         for i in range(num_trajs):
             traj = np.array([])
@@ -206,7 +287,8 @@ class CellPath():
     def all_in_one(self, num_metacells = None, n_neighs = 10, 
                    include_unspliced = True, standardize = True,
                    threshold = 0.5, cutoff_length = 5, 
-                   length_bias = 0.7, num_trajs = None, **kwargs):
+                   length_bias = 0.7, num_trajs = None, 
+                   insertion = False, **kwargs):
         """\
         Description
             run CellPath in one function
@@ -229,10 +311,12 @@ class CellPath():
             The bias on the path length for greedy selection
         num_trajs
             Number of trajectories
+        insertion
+            Inserting cells to the nearby meta-cell, boolean            
         """ 
 
         self.meta_cell_construction(n_clusters = num_metacells, include_unspliced = include_unspliced,
                                     standardize = standardize, **kwargs)
         self.meta_cell_graph(k_neighs = n_neighs, **kwargs)
         self.meta_paths_finding(threshold = threshold, cutoff_length = cutoff_length, length_bias = length_bias, **kwargs)
-        self.first_order_pt(num_trajs = num_trajs)
+        self.first_order_pt(num_trajs = num_trajs, insertion = insertion)
