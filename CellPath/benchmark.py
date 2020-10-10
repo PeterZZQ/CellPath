@@ -3,14 +3,14 @@ import anndata
 import pandas as pd
 
 
-def f1_score(adata, method = "CellPaths", paths = None, greedy_paths = None, slingshot_result = None, trajs = None):
+def f1_score(cellpath_obj = None, adata = None, method = "CellPath", slingshot_result = None, trajs = None):
     """\
     Description
         Calculate f1 score for trajectory detection    
     Parameters
     ----------
-    adata
-        gene expression data structure
+    cellpath_obj
+        cellpath object
     trajs
         number of trajectories
 
@@ -18,35 +18,43 @@ def f1_score(adata, method = "CellPaths", paths = None, greedy_paths = None, sli
     -------
     F1 
         F1 score
-    """   
+    """
+    if method == "CellPath":
+        if cellpath_obj is None:
+            raise ValueError("cellpath object must be provided for CellPath")
+
+        adata = cellpath_obj.adata
+        paths = cellpath_obj.paths
+        greedy_paths = cellpath_obj.greedy_order
+        groups = cellpath_obj.groups
+
+        # number of trajectory
+        if trajs == None:
+            trajs = len(greedy_paths)
+
+    elif method == "Slingshot":
+        if slingshot_result is None:
+            raise ValueError("No Slingshot result provided")
+
+        if adata is None:
+            raise ValueError("adata must be provided for Slingshot")
+
+        trajs = len(slingshot_result["pseudotime"].columns)
+
+    else:
+        raise ValueError("only provide benchmark between Slingshot and CellPath")
 
     # load ground truth
     if adata.obs['simulation_i'].cat.categories.dtype != 'int64':
         cell_belonging = adata.obs['simulation_i'].astype('int64').astype('category')
     else:
         cell_belonging = adata.obs['simulation_i']
-
-    # benchmark all trajectories
-    if method == "CellPaths":
-        groups = adata.obs['groups'] 
-
-        if trajs == None:
-            trajs = len(greedy_paths)
-
-        if paths == None or greedy_paths == None:
-            raise ValueError("No CellPaths result provided")
-
-    elif method == "Slingshot":
-        trajs = len(slingshot_result["pseudotime"].columns)
-
-        if slingshot_result == None:
-            raise ValueError("No Slingshot result provided")
-
+        
     recovery = 0
 
     print("recovery\n")
     for i in range(trajs):
-        if method == "CellPaths":
+        if method == "CellPath":
             traj = np.array([])
             for index in paths[greedy_paths[i]]:
                 group_i = np.where(groups == index)[0]
@@ -84,7 +92,7 @@ def f1_score(adata, method = "CellPaths", paths = None, greedy_paths = None, sli
         max_jaccard = 0
 
         for i in range(trajs):
-            if method == "CellPaths":
+            if method == "CellPath":
                 traj = np.array([])
                 for index in paths[greedy_paths[i]]:
                     group_i = np.where(groups == index)[0]
@@ -108,8 +116,7 @@ def f1_score(adata, method = "CellPaths", paths = None, greedy_paths = None, sli
     return F1
 
 
-
-def purity_count(adata, method = "CellPaths", paths = None, greedy_paths = None, slingshot_result = None, trajs = None):
+def purity_count(cellpath_obj = None, adata = None, method = "CellPath", paths = None, greedy_paths = None, slingshot_result = None, trajs = None):
     """\
     Description
         Calculated the purity count
@@ -127,40 +134,43 @@ def purity_count(adata, method = "CellPaths", paths = None, greedy_paths = None,
     -------
     bmk_belongings 
         the data frame for the purity count
-    """    
+    """  
+    if method == "CellPath": 
+        groups = cellpath_obj.groups
+
+        if cellpath_obj is None:
+            raise ValueError("Cellpath object must be provided") 
+
+        adata = cellpath_obj.adata
+        paths = cellpath_obj.paths
+        greedy_paths = cellpath_obj.greedy_order
+
+        if trajs is None:
+            trajs = len(greedy_paths)
+
+    elif method == "Slingshot":
+        if adata is None:
+            raise ValueError("adata must be provided")
+        if slingshot_result is None:
+            raise ValueError("No Slingshot result provided") 
+
+        trajs = len(slingshot_result["pseudotime"].columns)
+
+    else:
+        raise ValueError("Choose CellPath or Slingshot")
+
 
     if adata.obs['simulation_i'].cat.categories.dtype != 'int64':
         cell_belonging = adata.obs['simulation_i'].astype('int64').astype('category')
     else:
         cell_belonging = adata.obs['simulation_i']
 
-
-    # benchmark all trajectories
-    if method == "CellPaths":
-        groups = adata.obs['groups']
-
-        if trajs == None:
-            trajs = len(greedy_paths)
-
-        if paths == None or greedy_paths == None:
-            raise ValueError("No CellPaths result provided")
-
-    elif method == "Slingshot":
-        trajs = len(slingshot_result["pseudotime"].columns)
-
-        if slingshot_result == None:
-            raise ValueError("No Slingshot result provided") 
-
-    else:
-        raise ValueError("Choose CellPaths or Slingshot")
-
-
     cols = ["ori_traj_" + str(x) for x in list(cell_belonging.cat.categories)]
     rows = ["reconst_"+ str(x) for x in range(1,trajs + 1)]
     bmk_belongings = pd.DataFrame(columns = cols, index = rows, data = 0)
 
     for i in range(trajs):
-        if method == "CellPaths":
+        if method == "CellPath":
             traj = np.array([])
             for index in paths[greedy_paths[i]]:
                 group_i = np.where(groups == index)[0]
@@ -178,8 +188,7 @@ def purity_count(adata, method = "CellPaths", paths = None, greedy_paths = None,
     return bmk_belongings
 
 
-
-def average_entropy(adata, bmk_belongings):
+def average_entropy(bmk_belongings):
     """\
     Description
         Calculate average entropy, benchmark the purity of the inference result
