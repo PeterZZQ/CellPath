@@ -67,13 +67,19 @@ cellpath_obj = cp.CellPath(adata = adata, preprocess = True)
 cellpath_obj.all_in_one(num_metacells = num_metacells, n_neighs = 10, pruning = False, num_trajs = num_trajs, insertion = True, prop_insert = 0.50)
 ```
 
-* `num_metacells`: number of meta-cells in total
-* `n_neighs`: number of neighbors for each meta-cell
-* `pruning`: way to construct symmetric k-nn graph, prunning knn edges or including more edges
-* `num_trajs`: number of trajectories to output in the end
-* `insertion`: insert unassigned cells to trajectories or not
-* `prop_insert`: proportion of cells to be incorporated into the trajectories
-* Pseudo-time and branching assignment result
+`num_metacells`: number of meta-cells in total
+
+`n_neighs`: number of neighbors for each meta-cell
+
+`pruning`: way to construct symmetric k-nn graph, prunning knn edges or including more edges
+
+`num_trajs`: number of trajectories to output in the end
+
+`insertion`: insert unassigned cells to trajectories or not
+
+`prop_insert`: proportion of cells to be incorporated into the trajectories
+
+`Pseudo-time and branching assignment result
 
 ```
 cellpath_obj.pseudo_order
