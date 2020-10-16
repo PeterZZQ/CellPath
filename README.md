@@ -25,9 +25,9 @@ anndata >= 0.7.1
 
 scvelo >= 0.2.0
 
-statsmodels >= 0.11.1 (optional, for differentially expressed gene analysis)
-
 seaborn >= 0.10.0
+
+statsmodels >= 0.11.1 (optional, for differentially expressed gene analysis)
 
 rpy2 >= 3.3.0 (optional, for principal curve only)
 ```
