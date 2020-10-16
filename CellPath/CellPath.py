@@ -183,8 +183,6 @@ class CellPath():
                                                               verbose = _kwargs["verbose"], length_bias = length_bias, 
                                                               max_trajs = _kwargs["max_trajs"])
 
-
-
     def _cells_insertion(self, num_trajs = None, prop_insert = 1):
         """\
         Description
@@ -255,7 +253,6 @@ class CellPath():
         print("number of cells: " + str(len(indices)))
         # assign cells to the closest meta-cell
         self.groups[indices] = meta_cells
-
 
     def first_order_pt(self, num_trajs = None, insertion = False, verbose = True, prop_insert = 1):
         """\
