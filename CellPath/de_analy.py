@@ -96,8 +96,14 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, count_type = "10X"):
         de_genes[reconst_i] = []
         sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
         ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
-        # before log-transform?
-        X_traj = adata[ordering, :].layers["spliced"].toarray()
+
+        if "raw" not in adata.layers:
+            X_traj = adata[ordering, :].X.toarray()
+            # no longer count data, cannot use 10X UMI version
+            # count_type = "SMART-SEQ"
+        else:
+            # either 10X or SMART-SEQ
+            X_traj = adata[ordering,:].layers["raw"].toarray()
 
         for idx, gene in enumerate(adata.var.index):
             gene_dynamic = np.squeeze(X_traj[:,idx])
@@ -173,7 +179,10 @@ def de_plot(cellpath_obj, de_genes, figsize = (20,40), n_genes = 20, save_path =
         colormap = plt.cm.get_cmap('tab20b', n_genes)
         for idx, gene in enumerate(de_genes[reconst_i][:n_genes]):
             # plot log transformed version
-            gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].layers["spliced"].toarray())
+            if "raw" not in adata_i.layers:
+                gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].X.toarray())
+            else:
+                gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].layers["raw"].toarray())
             pse_t = np.arange(gene_dynamic.shape[0])[:,np.newaxis]
 
             gene_null = gene['null']

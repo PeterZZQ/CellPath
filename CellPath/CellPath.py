@@ -40,7 +40,7 @@ class CellPath():
         preprocess
             dataset is processed or not, boolean
         **kwargs
-            additional parameters for preprocessing
+            additional parameters for preprocessing (using scvelo)
         """
         self.adata = adata
         if not sparse.issparse(adata.X):
@@ -58,6 +58,10 @@ class CellPath():
             }
             
             _kwargs.update(kwargs)
+
+            # store the raw count before processing, for subsequent de analysis
+            self.adata.layers["raw"] = self.adata.X.copy()
+
             scv.pp.filter_and_normalize(data = self.adata, 
                                         min_shared_counts=_kwargs["min_shared_genes"], 
                                         n_top_genes=_kwargs["n_top_genes"])
@@ -181,7 +185,7 @@ class CellPath():
 
 
 
-    def cells_insertion(self, num_trajs = None):
+    def _cells_insertion(self, num_trajs = None, prop_insert = 1):
         """\
         Description
             Inserting unassigned cells
@@ -192,6 +196,8 @@ class CellPath():
             Number of trajectories
         verbose
             Output result
+        prop_insert
+            Parameters for the number of cells incorporated
         """     
         if num_trajs == None:
             num_trajs = len(self.greedy_order)
@@ -229,14 +235,29 @@ class CellPath():
         covered_clust = self.X_clust[list(clust_pools), :]
         pdist = pairwise_distances(uncovered_pca, covered_clust)
 
+        threshold = prop_insert * np.max(pdist)
+
+        pdist = np.where(pdist <= threshold, pdist, np.inf)
+        
+
         # choose meta-cell for each cell
-        meta_cells = [list(clust_pools)[x] for x in np.argmin(pdist, axis = 1)]
+        # meta_cells = [list(clust_pools)[x] for i, x in enumerate(np.argmin(pdist, axis = 1)) if pdist[i, x] != np.inf]
+        
+        meta_cells = []
+        indices = []
 
+        for idx in range(pdist.shape[0]):
+            x = np.argmin(pdist[idx,:])
+            if pdist[idx, x] != np.inf:
+                meta_cells.append(list(clust_pools)[x])
+                indices.append(cell_uncovered[idx])
+
+        print("number of cells: " + str(len(indices)))
         # assign cells to the closest meta-cell
-        self.groups[cell_uncovered] = meta_cells
+        self.groups[indices] = meta_cells
 
 
-    def first_order_pt(self, num_trajs = None, insertion = False, verbose = True):
+    def first_order_pt(self, num_trajs = None, insertion = False, verbose = True, prop_insert = 1):
         """\
         Description
             cell level pseudo-time inference using first order approximation
@@ -249,6 +270,8 @@ class CellPath():
             Inserting cells to the nearby meta-cell, boolean
         verbose
             Output result
+        prop_insert
+            The proportion of cells to be incorporated
         """ 
         if num_trajs == None:
             num_trajs = len(self.greedy_order)
@@ -259,7 +282,7 @@ class CellPath():
 
         if insertion:
             # inserting uncovered cells to the nearby meta-cells
-            self.cells_insertion(num_trajs = num_trajs)
+            self._cells_insertion(num_trajs = num_trajs, prop_insert = prop_insert)
 
 
         for i in range(num_trajs):
@@ -284,27 +307,28 @@ class CellPath():
         if verbose:
             print("Cell-level pseudo-time inferred")
 
+
     def all_in_one(self, num_metacells = None, n_neighs = 10, 
                    include_unspliced = True, standardize = True,
                    threshold = 0.5, cutoff_length = 5, 
                    length_bias = 0.7, num_trajs = None, 
-                   insertion = False, **kwargs):
+                   insertion = False, prop_insert = 1, **kwargs):
         """\
         Description
             run CellPath in one function
 
         Parameters
         ----------
-        n_clusters
+        num_metacells
             number of meta cells, default cell number/10
+        n_neighs
+            number of neighbors for the neighborhood graph, default 10
         include_unspliced
             Boolean, whether include unspliced count or not
         standardize
             Standardize before pca, boolean
-        k_neighs
-            number of neighbors for the neighborhood graph, default 10
         threshold
-            Cut-off quality score, equals to threshold * max_weight
+            Cut-off quality score, quality score is no larger than threshold * max_weight
         cutoff_length
             The cutoff length (lower bound) of inferred trajectory
         length_bias
@@ -312,11 +336,13 @@ class CellPath():
         num_trajs
             Number of trajectories
         insertion
-            Inserting cells to the nearby meta-cell, boolean            
+            Inserting covered cells to the nearby meta-cell path, boolean 
+        prop_insert
+            Proportion of cells to be incorporated in insertion
         """ 
 
         self.meta_cell_construction(n_clusters = num_metacells, include_unspliced = include_unspliced,
                                     standardize = standardize, **kwargs)
         self.meta_cell_graph(k_neighs = n_neighs, **kwargs)
         self.meta_paths_finding(threshold = threshold, cutoff_length = cutoff_length, length_bias = length_bias, **kwargs)
-        self.first_order_pt(num_trajs = num_trajs, insertion = insertion)
+        self.first_order_pt(num_trajs = num_trajs, insertion = insertion, prop_insert = prop_insert)

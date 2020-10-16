@@ -55,6 +55,28 @@ pip uninstall cellpath
 
 `run_cellpath.ipynb` provide a short pipeline of running cellpaths using **cycle-tree** trajectory dataset in the paper.
 
+* Initialize using adata with calculated velocity using scvelo
+```
+cellpath_obj = cp.CellPath(adata = adata, preprocess = True)
+```
+    * `preprocessing`: the velocity has been calculated and stored in adata or not, if False, the velocity will be calculated during initialization with scvelo
+
+* Run cellpath all in one
+```
+cellpath_obj.all_in_one(num_metacells = num_metacells, n_neighs = 10, pruning = False, num_trajs = num_trajs, insertion = True, prop_insert = 0.50)
+```
+    * `num_metacells`: number of meta-cells in total
+    * `n_neighs`: number of neighbors for each meta-cell
+    * `pruning`: way to construct symmetric k-nn graph, prunning knn edges or including more edges
+    * `num_trajs`: number of trajectories to output in the end
+    * `insertion`: insert unassigned cells to trajectories or not
+    * `prop_insert`: proportion of cells to be incorporated into the trajectories
+* Pseudo-time and branching assignment result
+```
+cellpath_obj.pseudo_order
+```
+* Additional visualizations, please check `run_cellpath.ipynb` for details.
+
 ## Contents
 
 * `CellPath/` contains the python code for the package
