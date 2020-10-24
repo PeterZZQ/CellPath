@@ -2,7 +2,6 @@ import cellpath.visual as visual
 import cellpath.clustering as clust
 import cellpath.path as path
 import cellpath.nn as nn
-import cellpath.princurve as pcurve
 import cellpath.benchmark as bmk
 
 import numpy as np  

@@ -1,6 +1,5 @@
 import numpy as np 
 import matplotlib.pyplot as plt
-import cellpath.princurve as pcurve
 import pandas as pd
 import cellpath.benchmark as bmk
 
@@ -332,6 +331,7 @@ def traj_visual(cellpath_obj, trajs = 4, figsize = (15,10), save_as = None, titl
     cmap
         Colormap
     """
+    import cellpath.princurve as pcurve
 
     groups = cellpath_obj.groups
     adata = cellpath_obj.adata
