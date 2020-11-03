@@ -30,13 +30,13 @@ REQUIRED = [
     'anndata>=0.7.1', 
     'scvelo>=0.2.0', 
     'statsmodels>=0.11.1', 
-    'seaborn>=0.10.0', 
-    'rpy2>=3.3.0',
+    'seaborn>=0.10.0',
     'matplotlib>=3.2.1'
 ]
 
 # What packages are optional?
 EXTRAS = {
+    'rpy2>=3.3.0'
     # 'fancy feature': ['django'],
 }
 
