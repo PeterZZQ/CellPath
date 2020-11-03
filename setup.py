@@ -36,7 +36,7 @@ REQUIRED = [
 
 # What packages are optional?
 EXTRAS = {
-    'rpy2>=3.3.0'
+    'rpy2>=3.3.0',
     # 'fancy feature': ['django'],
 }
 
