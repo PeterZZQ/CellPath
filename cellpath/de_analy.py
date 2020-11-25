@@ -69,7 +69,7 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
         return y_full, y_reduced, lr_pvalue
     
 
-def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, count_type = "10X"):
+def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomial"):
     """\
     Conduct differentially expressed gene analysis.
 
@@ -81,6 +81,8 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, count_type = "10X"):
         the threshold of p-value
     verbose
         output the differentially expressed gene
+    distri
+        distribution of gene expression: either "neg-binomial" or "log-normal"
 
     Returns
     -------
@@ -97,26 +99,21 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, count_type = "10X"):
         sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
         ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
 
-        if "raw" not in adata.layers:
-            X_traj = adata[ordering, :].X.toarray()
-            # no longer count data, cannot use 10X UMI version
-            # count_type = "SMART-SEQ"
-        else:
-            # either 10X or SMART-SEQ
-            X_traj = adata[ordering,:].layers["raw"].toarray()
+        # spliced stores the count before log transform, but after library size normalization. 
+        X_traj = adata[ordering,:].layers["spliced"].toarray()
+
 
         for idx, gene in enumerate(adata.var.index):
             gene_dynamic = np.squeeze(X_traj[:,idx])
             pse_t = np.arange(gene_dynamic.shape[0])[:,None]
-
-            # 10x dataset uses UMI count, de and dg are all created using 10x, and SMART-Seq use relative expression count, FKPM/TPM
-            # With UMI count the distribution follows negative binomial, and the FKPM count follows the log-normal distribution, most use 10x
-            if count_type == "10X":
+            if distri == "neg-binomial":
                 gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.NegativeBinomial())
-            elif count_type == "SMART-SEQ":
+            
+            elif distri == "log-normal":                
                 gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.Gaussian(link = sm.families.links.log()))
+            
             else:
-                raise ValueError("count_type can only be `10X` or `SMART-SEQ`")
+                raise ValueError("distribution can only be `neg-binomial` or `log-normal`")
 
             if p_val != None:
                 if verbose:
@@ -179,10 +176,7 @@ def de_plot(cellpath_obj, de_genes, figsize = (20,40), n_genes = 20, save_path =
         colormap = plt.cm.get_cmap('tab20b', n_genes)
         for idx, gene in enumerate(de_genes[reconst_i][:n_genes]):
             # plot log transformed version
-            if "raw" not in adata_i.layers:
-                gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].X.toarray())
-            else:
-                gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].layers["raw"].toarray())
+            gene_dynamic = np.squeeze(adata_i[:,gene["gene"]].layers["spliced"].toarray())
             pse_t = np.arange(gene_dynamic.shape[0])[:,np.newaxis]
 
             gene_null = gene['null']
