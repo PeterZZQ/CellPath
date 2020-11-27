@@ -1,8 +1,10 @@
-import statsmodels.api as sm
+import statsmodels.api as sm 
+import statsmodels
 from scipy import stats
 import numpy as np
 import anndata
 import matplotlib.pyplot as plt
+import scanpy as sc
 
 def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family = sm.families.NegativeBinomial()):
     """\
@@ -69,7 +71,7 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
         return y_full, y_reduced, lr_pvalue
     
 
-def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomial"):
+def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomial", fdr_correct = True):
     """\
     Conduct differentially expressed gene analysis.
 
@@ -83,6 +85,8 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
         output the differentially expressed gene
     distri
         distribution of gene expression: either "neg-binomial" or "log-normal"
+    fdr_correct
+        conduct fdr correction for multiple tests or not
 
     Returns
     -------
@@ -90,7 +94,6 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
         dictionary that store the differentially expressed genes
     """ 
 
-    adata = cellpath_obj.adata
     pseudo_order = cellpath_obj.pseudo_order
 
     de_genes = {}
@@ -99,8 +102,11 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
         sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
         ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
 
+        adata = cellpath_obj.adata[ordering,:]
+        # filter out genes that are expressed in a small proportion of cells 
+        sc.pp.filter_genes(adata, min_cells = int(0.05 * len(ordering)))
         # spliced stores the count before log transform, but after library size normalization. 
-        X_traj = adata[ordering,:].layers["spliced"].toarray()
+        X_traj = adata.layers["spliced"].toarray()
 
 
         for idx, gene in enumerate(adata.var.index):
@@ -118,11 +124,22 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
             if p_val != None:
                 if verbose:
                     print("gene: ", gene, ", pvalue = ", p_val)
-                if p_val <= p_val_t:
-                    de_genes[reconst_i].append({"gene": gene, "regression": gene_pred, "null": gene_null,"p_val": p_val})
-
+                # if p_val <= p_val_t:
+                de_genes[reconst_i].append({"gene": gene, "regression": gene_pred, "null": gene_null,"p_val": p_val})
+        
         # sort according to the p_val
         de_genes[reconst_i] = sorted(de_genes[reconst_i], key=lambda x: x["p_val"],reverse=False)
+
+        if fdr_correct:
+            pvals = [x["p_val"] for x in de_genes[reconst_i]]
+            is_de, pvals = statsmodels.stats.multitest.fdrcorrection(pvals, alpha=p_val_t, method='indep', is_sorted=True)
+            
+            # update p-value
+            for gene_idx in range(len(de_genes[reconst_i])):
+                de_genes[reconst_i][gene_idx]["p_val"] = pvals[gene_idx]
+            
+            # remove the non-de genes
+            de_genes[reconst_i] = [x for i,x in enumerate(de_genes[reconst_i]) if is_de[i] == True]
 
     return de_genes
 
