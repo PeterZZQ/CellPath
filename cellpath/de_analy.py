@@ -6,7 +6,7 @@ import anndata
 import matplotlib.pyplot as plt
 import scanpy as sc
 
-def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family = sm.families.NegativeBinomial()):
+def GAM_pt(pse_t, expr, smooth = 'BSplines', df = 5, degree = 3, family = sm.families.NegativeBinomial()):
     """\
     Fit a Generalized Additive Model with the exog to be the pseudo-time. The likelihood ratio test is performed 
     to test the significance of pseudo-time in affecting gene expression value
@@ -19,8 +19,8 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
         expression value
     smooth
         choose between BSplines and CyclicCubicSplines
-    n_splines
-        number of splines function, correspond to the degree of freedom of the model
+    df
+        degree of freedom of the model
     degree
         degree of the spline function
     family
@@ -38,13 +38,13 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
     from statsmodels.gam.api import GLMGam, BSplines, CyclicCubicSplines
 
     if smooth == 'BSplines':
-        spline = BSplines(pse_t, df = [n_splines], degree = [degree])
+        spline = BSplines(pse_t, df = [df], degree = [degree])
     elif smooth == 'CyclicCubicSplines':
-        spline = CyclicCubicSplines(pse_t, df = [n_splines])
+        spline = CyclicCubicSplines(pse_t, df = [df])
 
     exog, endog = sm.add_constant(pse_t),expr
     # calculate full model
-    model_full = sm.GLMGam(endog = endog, exog = exog, smoother= spline, family=family)
+    model_full = sm.GLMGam(endog = endog, exog = exog, smoother = spline, family = family)
     try:
         res_full = model_full.fit()
     except:
@@ -57,7 +57,7 @@ def GAM_pt(pse_t, expr, smooth = 'BSplines', n_splines = 5, degree = 3, family =
         y_reduced = res_full.null
 
         # number of samples - number of paras (res_full.df_resid)
-        df_full_residual = expr.shape[0] - n_splines
+        df_full_residual = expr.shape[0] - df
         df_reduced_residual = expr.shape[0] - 1
 
         # likelihood of full model
@@ -113,10 +113,10 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
             gene_dynamic = np.squeeze(X_traj[:,idx])
             pse_t = np.arange(gene_dynamic.shape[0])[:,None]
             if distri == "neg-binomial":
-                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.NegativeBinomial())
+                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='BSplines', df = 4, degree = 3, family=sm.families.NegativeBinomial())
             
             elif distri == "log-normal":                
-                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='CyclicCubicSplines', n_splines = 4, degree = 3, family=sm.families.Gaussian(link = sm.families.links.log()))
+                gene_pred, gene_null, p_val = GAM_pt(pse_t, gene_dynamic, smooth='BSplines', df = 4, degree = 3, family=sm.families.Gaussian(link = sm.families.links.log()))
             
             else:
                 raise ValueError("distribution can only be `neg-binomial` or `log-normal`")
