@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import cellpath.benchmark as bmk
 
-def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, **kwargs):
+def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, title = None, **kwargs):
     """\
     Description
         Plot original dataset
@@ -24,6 +24,8 @@ def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, **
         "axis": False,
         "legend_pos": "upper left",
         "colormap": "tab20",
+        "s": 10,
+        "add_arrow": False
     }
     _kwargs.update(kwargs)
 
@@ -47,17 +49,26 @@ def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, **
 
         for count, clust in enumerate(cluster_uni):
             idx = np.where(np.array(cluster_anno) == clust)[0]
-            ax.scatter(X[idx,0], X[idx,1], color = colormap(count), alpha = 0.7, label = clust)    
+            ax.scatter(X[idx,0], X[idx,1], color = colormap(count), alpha = 0.7, label = clust, s = _kwargs["s"])    
         ax.legend(loc=_kwargs["legend_pos"], prop={'size': 15}, frameon = False, ncol = 1)
     
     elif "sim_time" in cellpath_obj.adata.obs.columns:
-        pic = ax.scatter(X[:,0], X[:,1], cmap = "gnuplot", c = cellpath_obj.adata.obs["sim_time"].values, alpha = 1)
+        X_ordered = X[np.argsort(cellpath_obj.adata.obs["sim_time"].values),:]
+        if _kwargs["add_arrow"]:
+            for i in range(X_ordered.shape[0]-1):
+                line = ax.plot(X_ordered[i:(i+2), 0], X_ordered[i:(i+2), 1], 'gray', '-', alpha = 1)
+                add_arrow(line[0], size = 5)
+
+        pic = ax.scatter(X_ordered[:,0], X_ordered[:,1], cmap = "gnuplot", c = np.arange(X_ordered.shape[0]), alpha = 1, s = _kwargs["s"])
         cbar = fig.colorbar(pic, fraction=0.046, pad=0.04, ax = ax)
         cbar.ax.tick_params(labelsize = 20)
+        
 
     else:
-        ax.scatter(X[:,0], X[:,1], color = "red", alpha = 0.7)
+        ax.scatter(X[:,0], X[:,1], color = "red", alpha = 0.7, s = _kwargs["s"])
 
+    if title is not None:
+        ax.set_title(title, fontsize = 25)
     if save_as != None:
         fig.savefig(save_as, bbox_inches = 'tight')
 
@@ -442,7 +453,7 @@ def slingshot_visual(adata, results, basis = "umap", figsize = (20,10), save_as 
             ax = axs[i%nrows, i//nrows]
 
         ax.scatter(X[:,0],X[:,1], color = 'gray', alpha = 0.1)
-        ax.plot(results['curves'][i,:,0],results['curves'][i,:,1],color = 'black')
+        ax.plot(results['curves'][i,:,0],results['curves'][i,:,1],color = 'black', linewidth = 4)
 
         # kendall-tau
         pt_i = results['pseudotime'].iloc[:,i]

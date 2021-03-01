@@ -105,7 +105,8 @@ class CellPath():
             "kernel": "rbf",
             "alpha": 1,
             "gamma": 0.3,
-            "verbose": True
+            "verbose": True,
+            "seed": 0
         }
         _kwargs.update(kwarg)
 
@@ -114,7 +115,7 @@ class CellPath():
                                           n_comps = _kwargs["n_comps"], init = _kwargs["init"],
                                           n_init = _kwargs["n_init"], max_iter = _kwargs["max_iter"],
                                           tol = _kwargs["tol"], include_unspliced = include_unspliced,
-                                          standardize = standardize)
+                                          standardize = standardize, seed = _kwargs["seed"])
 
         # checked
         self.X_clust, self.velo_clust = clust.meta_cells(self.adata, kernel = _kwargs["kernel"], 
@@ -170,11 +171,15 @@ class CellPath():
         _kwargs = {
             "max_trajs": None,
             "verbose": True,
-            "root_cell_indeg":[0,1,2]
+            "root_cell_indeg":[0,1,2],
+            "mode": "fast"
         }
 
         _kwargs.update(kwargs)
-        self.paths, self.opt = path.dijkstra_paths(adj = self.adj_assigned.copy(), indeg = _kwargs["root_cell_indeg"])
+        if _kwargs["mode"] == "fast":
+            self.paths, self.opt = path.dijkstra_paths(adj = self.adj_assigned.copy(), indeg = _kwargs["root_cell_indeg"])
+        else:
+            self.paths, self.opt = path.floyd_warshall(adj = self.adj_assigned.copy())
         
         n_metacells = int(np.max(self.groups)+1)
         self.greedy_order, self.paths = path.greedy_selection(nodes = n_metacells, paths = self.paths,opt_value = self.opt, threshold = threshold, 

@@ -8,7 +8,7 @@ def cluster_cells(
         n_comps = 30, init = "k-means++",
         n_init = 10, max_iter=300, 
         tol = 0.0001, include_unspliced = True, 
-        standardize = True):
+        standardize = True, seed = None):
     """\
     Cluster cells into clusters, using K-means
 
@@ -40,7 +40,7 @@ def cluster_cells(
     else:
         if n_clusters == None:
             n_clusters = int(adata.n_obs/10)
-        kmeans = KMeans(n_clusters, init, n_init, max_iter, tol)
+        kmeans = KMeans(n_clusters = n_clusters, init = init, n_init = n_init, max_iter = max_iter, tol = tol, random_state = seed)
 
         X_spliced = np.log1p(adata.layers['spliced'].toarray())
         X_unspliced = np.log1p(adata.layers['unspliced'].toarray())
