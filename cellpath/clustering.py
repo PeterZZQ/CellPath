@@ -41,9 +41,15 @@ def cluster_cells(
         if n_clusters == None:
             n_clusters = int(adata.n_obs/10)
         kmeans = KMeans(n_clusters = n_clusters, init = init, n_init = n_init, max_iter = max_iter, tol = tol, random_state = seed)
-
-        X_spliced = np.log1p(adata.layers['spliced'].toarray())
-        X_unspliced = np.log1p(adata.layers['unspliced'].toarray())
+        if sparse.issparse(adata.layers['spliced']):
+            X_spliced = np.log1p(adata.layers['spliced'].toarray())
+        else:
+            X_spliced = np.log1p(adata.layers['spliced'])
+        
+        if sparse.issparse(adata.layers['unspliced']):
+            X_unspliced = np.log1p(adata.layers['unspliced'].toarray())
+        else:
+            X_unspliced = np.log1p(adata.layers['unspliced'])
 
         if standardize:
             pca = Pipeline(
