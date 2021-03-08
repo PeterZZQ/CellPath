@@ -29,9 +29,10 @@ REQUIRED = [
     'scikit-learn>=0.22.1', 
     'anndata>=0.7.1', 
     'scvelo>=0.2.0', 
-    'statsmodels>=0.11.1', 
+    'statsmodels>=0.12.1', 
     'seaborn>=0.10.0',
-    'matplotlib>=3.2.1'
+    'matplotlib>=3.2.1',
+    'leidenalg>=0.8.2'
 ]
 
 # What packages are optional?
