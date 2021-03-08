@@ -2,13 +2,13 @@ import anndata
 from scipy import sparse
 import numpy as np  
 import pandas as pd
+import cellpath.leiden as leiden
 
 def cluster_cells(
-        adata, n_clusters = None, 
-        n_comps = 30, init = "k-means++",
-        n_init = 10, max_iter=300, 
-        tol = 0.0001, include_unspliced = True, 
-        standardize = True, seed = None):
+        adata, n_clusters = None, resolution = 30,
+        n_comps = 30, include_unspliced = True, 
+        standardize = True, seed = 0, flavor = "k-means"
+        ):
     """\
     Cluster cells into clusters, using K-means
 
@@ -18,8 +18,6 @@ def cluster_cells(
         The annotated data matrix.
     n_clusters
         number of clusters, default, cell number/10
-    init, n_init, max_iter, tol
-        K-means parameters
     include_unspliced
         Boolean, whether include unspliced count or not
 
@@ -40,7 +38,6 @@ def cluster_cells(
     else:
         if n_clusters == None:
             n_clusters = int(adata.n_obs/10)
-        kmeans = KMeans(n_clusters = n_clusters, init = init, n_init = n_init, max_iter = max_iter, tol = tol, random_state = seed)
         if sparse.issparse(adata.layers['spliced']):
             X_spliced = np.log1p(adata.layers['spliced'].toarray())
         else:
@@ -58,20 +55,34 @@ def cluster_cells(
         else:
             pca = PCA(n_components=n_comps, svd_solver="arpack")
 
+        kmeans = KMeans(n_clusters = n_clusters, init = "k-means++", n_init = 10, max_iter = 300, tol = 0.0001, random_state = seed)
+
         # Include unspliced count for clustering, recalculate X_pca and X_concat_pca
         if include_unspliced:
             
             X_concat = np.concatenate((X_spliced,X_unspliced),axis=1)
             X_concat_pca = pca.fit_transform(X_concat)
             X_pca = pca.fit_transform(X_spliced)
-            groups = kmeans.fit_predict(X_concat_pca)
+            if flavor == "k-means":
+                groups = kmeans.fit_predict(X_concat_pca)
+            elif flavor == "leiden":
+                groups = leiden.cluster_cells_leiden(X = X_concat_pca, resolution = resolution)
+            else:
+                raise ValueError("flavor can only be `k-means' or `leiden'")
+            
             adata.obsm['X_pca'] = X_pca
                 
         else:
             X_pca = pca.fit_transform(X_spliced)
             adata.obsm['X_pca'] = X_pca
-            groups = kmeans.fit_predict(X_pca)
             
+            if flavor == "k-means":
+                groups = kmeans.fit_predict(X_pca)
+            elif flavor == "leiden":
+                groups = leiden.cluster_cells_leiden(X = X_pca, resolution = resolution, random_state = 0)
+            else:
+                raise ValueError("flavor can only be `k-means' or `leiden'")
+
         velo_matrix = adata.layers["velocity"]
         # predict gene expression data
         X_pre = X_spliced + velo_matrix 

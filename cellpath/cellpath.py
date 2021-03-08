@@ -82,7 +82,7 @@ class CellPath():
             else:
                 raise ValueError("`velo_mode` can only be dynamical or stochastic")
 
-    def meta_cell_construction(self, n_clusters = None, include_unspliced = True, standardize = True, **kwarg):
+    def meta_cell_construction(self, flavor = "k-means", n_clusters = None, resolution = 30, include_unspliced = True, standardize = True, **kwarg):
         """\
         Description
             Constructing meta cell
@@ -98,10 +98,6 @@ class CellPath():
         """
         _kwargs = {
             "n_comps": 30, 
-            "init": "k-means++",
-            "n_init": 10, 
-            "max_iter": 300, 
-            "tol": 0.0001, 
             "kernel": "rbf",
             "alpha": 1,
             "gamma": 0.3,
@@ -112,17 +108,17 @@ class CellPath():
 
         # skip if already clustered
         self.groups = clust.cluster_cells(self.adata, n_clusters = n_clusters,
-                                          n_comps = _kwargs["n_comps"], init = _kwargs["init"],
-                                          n_init = _kwargs["n_init"], max_iter = _kwargs["max_iter"],
-                                          tol = _kwargs["tol"], include_unspliced = include_unspliced,
-                                          standardize = standardize, seed = _kwargs["seed"])
+                                          n_comps = _kwargs["n_comps"], resolution = resolution,
+                                          include_unspliced = include_unspliced,
+                                          standardize = standardize, seed = _kwargs["seed"], 
+                                          flavor = flavor)
 
         # checked
         self.X_clust, self.velo_clust = clust.meta_cells(self.adata, kernel = _kwargs["kernel"], 
                                                          alpha = _kwargs["alpha"], gamma = _kwargs["gamma"])
 
         if _kwargs["verbose"] == True:
-            print("Meta-cell constructed")
+            print("Meta-cell constructed, number of meta-cells: {:d}".format(self.X_clust.shape[0]))
 
     def meta_cell_graph(self, k_neighs = 10, pruning = False, **kwargs):
         """\
@@ -309,11 +305,11 @@ class CellPath():
             print("Cell-level pseudo-time inferred")
 
 
-    def all_in_one(self, num_metacells = None, n_neighs = 10, 
-                   include_unspliced = True, standardize = True,
-                   threshold = 0.5, cutoff_length = 5, 
-                   length_bias = 0.7, num_trajs = None, 
-                   insertion = False, prop_insert = 1, **kwargs):
+    def all_in_one(self, flavor = "leiden", resolution = 30, num_metacells = None, 
+                   n_neighs = 10, include_unspliced = True, standardize = True,
+                   threshold = 0.5, cutoff_length = 5, length_bias = 0.7, num_trajs = None, 
+                   insertion = False, prop_insert = 1, 
+                   **kwargs):
         """\
         Description
             run CellPath in one function
@@ -342,8 +338,10 @@ class CellPath():
             Proportion of cells to be incorporated in insertion
         """ 
 
-        self.meta_cell_construction(n_clusters = num_metacells, include_unspliced = include_unspliced,
-                                    standardize = standardize, **kwargs)
+        # self.meta_cell_construction(n_clusters = num_metacells, include_unspliced = include_unspliced,
+        #                             standardize = standardize, **kwargs)
+        self.meta_cell_construction(flavor = flavor, n_clusters = num_metacells, resolution = resolution, include_unspliced = True, standardize = True, **kwargs)
+
         self.meta_cell_graph(k_neighs = n_neighs, **kwargs)
         self.meta_paths_finding(threshold = threshold, cutoff_length = cutoff_length, length_bias = length_bias, **kwargs)
         self.first_order_pt(num_trajs = num_trajs, insertion = insertion, prop_insert = prop_insert)
