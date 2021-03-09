@@ -66,7 +66,7 @@ def cluster_cells(
             if flavor == "k-means":
                 groups = kmeans.fit_predict(X_concat_pca)
             elif flavor == "leiden":
-                groups = leiden.cluster_cells_leiden(X = X_concat_pca, resolution = resolution)
+                groups = leiden.cluster_cells_leiden(X = X_concat_pca, resolution = resolution, random_state = seed)
             else:
                 raise ValueError("flavor can only be `k-means' or `leiden'")
             
@@ -79,7 +79,7 @@ def cluster_cells(
             if flavor == "k-means":
                 groups = kmeans.fit_predict(X_pca)
             elif flavor == "leiden":
-                groups = leiden.cluster_cells_leiden(X = X_pca, resolution = resolution, random_state = 0)
+                groups = leiden.cluster_cells_leiden(X = X_pca, resolution = resolution, random_state = seed)
             else:
                 raise ValueError("flavor can only be `k-means' or `leiden'")
 

@@ -165,8 +165,9 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
 
     for i in range(trajs):
         sorted_pt = cellpath_obj.pseudo_order["traj_"+str(i)].dropna(axis = 0).sort_values()
-        traj = [int(x.split("_")[1]) for x in sorted_pt.index]
-        X_traj = adata.obsm[basis][traj,:]
+        # traj = [int(x.split("_")[1]) for x in sorted_pt.index]
+        # X_traj = adata.obsm[basis][traj,:]
+        X_traj = adata[sorted_pt.index,:].obsm[basis]
  
         if nrows != 1:
             # multiple >2 plots

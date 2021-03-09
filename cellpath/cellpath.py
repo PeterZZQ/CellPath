@@ -299,7 +299,9 @@ class CellPath():
             traj = traj.astype('int')
 
             for pt, curr_cell in enumerate(traj):
-                self.pseudo_order.loc["cell_"+str(curr_cell),"traj_"+str(i)] = pt
+                # self.pseudo_order.loc["cell_"+str(curr_cell),"traj_"+str(i)] = pt
+                
+                self.pseudo_order.loc[self.adata.obs.index.values[curr_cell],"traj_"+str(i)] = pt
 
         if verbose:
             print("Cell-level pseudo-time inferred")
