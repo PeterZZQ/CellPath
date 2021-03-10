@@ -142,7 +142,7 @@ class CellPath():
         _kwargs.update(kwargs)
 
         _adj_matrix, _dist_matrix = nn.NeighborhoodGraph(self.X_clust, k_neighs = k_neighs, symm = _kwargs["symm"], pruning = pruning)
-        self.adj_assigned = nn.assign_weights(connectivities = _adj_matrix, distances = _dist_matrix, X_pca = self.X_clust, 
+        self.adj_assigned = nn.assign_weights(connectivities = _adj_matrix, distances = _dist_matrix, X = self.X_clust, 
                                                                velo_pca = self.velo_clust, scaling = _kwargs["scaling"], 
                                                                distance_scalar = _kwargs["distance_scalar"], threshold = 0.0)
 
