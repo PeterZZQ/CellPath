@@ -100,11 +100,12 @@ def de_analy(cellpath_obj, p_val_t = 0.05, verbose = False, distri = "neg-binomi
     for reconst_i in pseudo_order.columns:
         de_genes[reconst_i] = []
         sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
-        ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        # ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        ordering = sorted_pt.index.values.squeeze()
 
         adata = cellpath_obj.adata[ordering,:]
         # filter out genes that are expressed in a small proportion of cells 
-        sc.pp.filter_genes(adata, min_cells = int(0.05 * len(ordering)))
+        sc.pp.filter_genes(adata, min_cells = int(0.05 * ordering.shape[0]))
         # spliced stores the count before log transform, but after library size normalization. 
         X_traj = adata.layers["spliced"].toarray()
 
@@ -176,7 +177,8 @@ def de_plot(cellpath_obj, de_genes, figsize = (20,40), n_genes = 20, save_path =
     for reconst_i in de_genes.keys():
         # ordering of genes
         sorted_pt = pseudo_order[reconst_i].dropna(axis = 0).sort_values()
-        ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        # ordering = [int(x.split("_")[1]) for x in sorted_pt.index]
+        ordering = sorted_pt.index.values.squeeze()
         adata_i = adata[ordering, :]
 
         # create directory

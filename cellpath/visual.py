@@ -25,7 +25,8 @@ def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, ti
         "legend_pos": "upper left",
         "colormap": "tab20",
         "s": 10,
-        "add_arrow": False
+        "add_arrow": False,
+        "markerscale": 1.0
     }
     _kwargs.update(kwargs)
 
@@ -50,7 +51,7 @@ def plot_data(cellpath_obj, basis = "umap", figsize = (15,7), save_as = None, ti
         for count, clust in enumerate(cluster_uni):
             idx = np.where(np.array(cluster_anno) == clust)[0]
             ax.scatter(X[idx,0], X[idx,1], color = colormap(count), alpha = 0.7, label = clust, s = _kwargs["s"])    
-        ax.legend(loc=_kwargs["legend_pos"], prop={'size': 15}, frameon = False, ncol = 1)
+        ax.legend(loc=_kwargs["legend_pos"], prop={'size': 15}, frameon = False, ncol = 1, markerscale=_kwargs["markerscale"])
     
     elif "sim_time" in cellpath_obj.adata.obs.columns:
         X_ordered = X[np.argsort(cellpath_obj.adata.obs["sim_time"].values),:]
@@ -263,7 +264,9 @@ def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4,
         "arrow_style": "->",
         "legend_pos": "upper right", 
         "axis": False,
-        "colormap": "tab20b"    
+        "colormap": "tab20b",
+        "bbox_to_anchor":(1.05, 1),
+        "markerscale": 1.0    
     }
 
     _kwargs.update(kwargs)
@@ -313,7 +316,7 @@ def meta_traj_visual(cellpath_obj, basis = "pca", trajs = 4,
             add_arrow(line[0], **_kwargs)
 
         line[0].set_label('Path '+str(i))
-        plt.legend(loc = _kwargs["legend_pos"], prop = {'size': 20}, frameon = False, ncol = 2)
+        plt.legend(loc = _kwargs["legend_pos"], prop = {'size': 20}, frameon = False, ncol = 2, bbox_to_anchor=_kwargs["bbox_to_anchor"], markerscale = _kwargs["markerscale"])
 
     if title != None:
         plt.title(title)
