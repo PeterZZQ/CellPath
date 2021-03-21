@@ -179,7 +179,7 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
 
             pseudo_visual = axs[i%nrows, i//nrows].scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'), alpha = 0.7)
 
-            axs[i%nrows, i//nrows].set_title("CellPaths: Path " + str(i), fontsize = 25)
+            axs[i%nrows, i//nrows].set_title("CellPath: Path " + str(i), fontsize = 25)
             axs[i%nrows, i//nrows].set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
             axs[i%nrows, i//nrows].set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs[i%nrows, i//nrows].set_xticks([])
@@ -198,7 +198,7 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
 
             pseudo_visual = axs.scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'),alpha = 0.7)
 
-            axs.set_title("CellPaths: Path " + str(i), fontsize = 25)
+            axs.set_title("CellPath: Path " + str(i), fontsize = 25)
             axs.set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
             axs.set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs.set_xticks([])
@@ -216,7 +216,7 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
             axs[i].scatter(adata.obsm[basis][:,0],adata.obsm[basis][:,1], color = 'gray', alpha = 0.1)
             pseudo_visual = axs[i].scatter(X_traj[:,0],X_traj[:,1],c = np.arange(X_traj.shape[0]), cmap=plt.get_cmap('gnuplot'),alpha = 0.7)
             
-            axs[i].set_title("CellPaths: Path " + str(i), fontsize = 25)
+            axs[i].set_title("CellPath: Path " + str(i), fontsize = 25)
             axs[i].set_xlabel(basis.split("_")[1] + " 1", fontsize = 19)
             axs[i].set_ylabel(basis.split("_")[1] + " 2", fontsize = 19)
             axs[i].set_xticks([])
@@ -406,7 +406,7 @@ def traj_visual(cellpath_obj, trajs = 4, figsize = (15,10), save_as = None, titl
         fig.savefig(save_as, bbox_inches = 'tight')
 
 
-def slingshot_visual(adata, results, basis = "umap", figsize = (20,10), save_as = None, title = None, axis = True):
+def slingshot_visual(adata, results, basis = "umap", figsize = (20,10), save_as = None, title = None, axis = True, use_pcurve = False):
     """\
     Description        
         Infer pseudo-time using Slingshot, and return kendall-tau coefficient as accuracy value
@@ -427,6 +427,8 @@ def slingshot_visual(adata, results, basis = "umap", figsize = (20,10), save_as 
         The title name of the plot
     axis
         Show axis or not, boolean value
+    use_pcurve:
+        Use pcurve or not
 
     Return
     ----------
@@ -457,7 +459,8 @@ def slingshot_visual(adata, results, basis = "umap", figsize = (20,10), save_as 
             ax = axs[i%nrows, i//nrows]
 
         ax.scatter(X[:,0],X[:,1], color = 'gray', alpha = 0.1)
-        ax.plot(results['curves'][i,:,0],results['curves'][i,:,1],color = 'black', linewidth = 4)
+        if use_pcurve:
+            ax.plot(results['curves'][i,:,0],results['curves'][i,:,1],color = 'black', linewidth = 4)
 
         # kendall-tau
         pt_i = results['pseudotime'].iloc[:,i]

@@ -196,11 +196,16 @@ def average_entropy(bmk_belongings):
     aver_entropy = 0
     for traj in bmk_belongings.index:
         prop = bmk_belongings.loc[traj,:].values
-        prop = prop/np.sum(prop)
+        prop = prop/np.sum(prop) 
         entropy_traj = - np.sum(prop * np.log(prop))
         aver_entropy += entropy_traj
     
     aver_entropy = aver_entropy/bmk_belongings.shape[0]
+    max_entropy = np.ones([1, bmk_belongings.shape[1]]) * 1/bmk_belongings.shape[1] 
+    max_entropy = - np.sum(max_entropy * np.log(max_entropy))
+
+    aver_entropy = 1 - aver_entropy / max_entropy
+
     return aver_entropy
     
 
