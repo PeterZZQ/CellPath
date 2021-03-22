@@ -82,21 +82,25 @@ class CellPath():
             else:
                 raise ValueError("`velo_mode` can only be dynamical or stochastic")
 
-    def meta_cell_construction(self, flavor = "k-means", n_clusters = None, resolution = 30, include_unspliced = True, standardize = True, **kwarg):
+    def meta_cell_construction(self, flavor = "k-means", n_clusters = None, resolution = 30, **kwarg):
         """\
         Description
             Constructing meta cell
 
         Parameters
         ----------
+        flavor
+            The clustering algorithm for meta-cell: including k-means and leiden algorithm
         n_clusters
-            number of meta cells, default cell number/10
-        include_unspliced
-            Boolean, whether include unspliced count or not
-        standardize
-            Standardize before pca, boolean
+            The number of meta cells (if use k-means), default cell number/10
+        resolution
+            The resolution parameter(if use leiden), default 30
         """
         _kwargs = {
+            # Boolean, whether include unspliced count or not
+            "include_unspliced":True,
+            # Standardize before pca, boolean
+            "standardize": True,
             "n_comps": 30, 
             "kernel": "rbf",
             "alpha": 1,
@@ -109,8 +113,8 @@ class CellPath():
         # skip if already clustered
         self.groups = clust.cluster_cells(self.adata, n_clusters = n_clusters,
                                           n_comps = _kwargs["n_comps"], resolution = resolution,
-                                          include_unspliced = include_unspliced,
-                                          standardize = standardize, seed = _kwargs["seed"], 
+                                          include_unspliced = _kwargs["include_unspliced"],
+                                          standardize = _kwargs["standardize"], seed = _kwargs["seed"], 
                                           flavor = flavor)
 
         # checked
@@ -120,7 +124,7 @@ class CellPath():
         if _kwargs["verbose"] == True:
             print("Meta-cell constructed, number of meta-cells: {:d}".format(self.X_clust.shape[0]))
 
-    def meta_cell_graph(self, k_neighs = 10, pruning = False, **kwargs):
+    def meta_cell_graph(self, k_neighs = 10, pruning = True, **kwargs):
         """\
         Description
             meta-cell level graph construction
@@ -150,7 +154,7 @@ class CellPath():
         if _kwargs["verbose"] == True:
             print("Meta-cell level neighborhood graph constructed")
     
-    def meta_paths_finding(self, threshold = 0.5, cutoff_length = 5, length_bias = 0.7, **kwargs):
+    def meta_paths_finding(self, threshold = 0.5, cutoff_length = 5, length_bias = 0.7, mode = "fast", **kwargs):
         """\
         Description
             meta-cell level trajectory finding
@@ -163,20 +167,23 @@ class CellPath():
             The cutoff length (lower bound) of inferred trajectory
         length_bias
             The bias on the path length for greedy selection
+        mode
+            The path finding algorithm. ``fast'': dijkstra, ``exact'': floydWarshall, default fast.
         """ 
         _kwargs = {
             "max_trajs": None,
             "verbose": True,
             "root_cell_indeg":[0,1,2],
-            "mode": "fast"
         }
 
         _kwargs.update(kwargs)
-        if _kwargs["mode"] == "fast":
+        if mode == "fast":
             self.paths, self.opt = path.dijkstra_paths(adj = self.adj_assigned.copy(), indeg = _kwargs["root_cell_indeg"])
-        else:
+        elif mode == "exact":
             self.paths, self.opt = path.floyd_warshall(adj = self.adj_assigned.copy())
-        
+        else:
+            raise ValueError("mode can only be ``fast'' or ``exact''.")
+
         n_metacells = int(np.max(self.groups)+1)
         self.greedy_order, self.paths = path.greedy_selection(nodes = n_metacells, paths = self.paths,opt_value = self.opt, threshold = threshold, 
                                                               max_w=self.max_weight, cut_off=cutoff_length, 
@@ -254,7 +261,7 @@ class CellPath():
         # assign cells to the closest meta-cell
         self.groups[indices] = meta_cells
 
-    def first_order_pt(self, num_trajs = None, insertion = False, verbose = True, prop_insert = 1):
+    def first_order_pt(self, num_trajs = None, verbose = True, prop_insert = 0):
         """\
         Description
             cell level pseudo-time inference using first order approximation
@@ -263,12 +270,10 @@ class CellPath():
         ----------
         num_trajs
             Number of trajectories
-        insertion
-            Inserting cells to the nearby meta-cell, boolean
         verbose
             Output result
         prop_insert
-            The proportion of cells to be incorporated
+            The proportion of cells to be incorporated, default 0(no cell to be inserted)
         """ 
         if num_trajs == None:
             num_trajs = len(self.greedy_order)
@@ -277,7 +282,7 @@ class CellPath():
             raise ValueError("number of trajectory to be selected larger than maximum number")
         self.pseudo_order = pd.DataFrame(data = np.nan, index = self.adata.obs.index, columns = ["traj_" + str(x) for x in range(num_trajs)]) 
 
-        if insertion:
+        if prop_insert > 0:
             # inserting uncovered cells to the nearby meta-cells
             self._cells_insertion(num_trajs = num_trajs, prop_insert = prop_insert)
 
@@ -308,10 +313,8 @@ class CellPath():
 
 
     def all_in_one(self, flavor = "leiden", resolution = 30, num_metacells = None, 
-                   n_neighs = 10, include_unspliced = True, standardize = True,
-                   threshold = 0.5, cutoff_length = 5, length_bias = 0.7, num_trajs = None, 
-                   insertion = False, prop_insert = 1, 
-                   **kwargs):
+                   n_neighs = 13, pruning = True, threshold = 0.5, cutoff_length = 5, length_bias = 0.7, mode = "exact", 
+                   num_trajs = None, prop_insert = 0, **kwargs):
         """\
         Description
             run CellPath in one function
@@ -332,18 +335,18 @@ class CellPath():
             The cutoff length (lower bound) of inferred trajectory
         length_bias
             The bias on the path length for greedy selection
+        mode 
+            The mode of path finding algorithm, include ``fast'' and ``exact'', default ``exact''
         num_trajs
-            Number of trajectories
-        insertion
-            Inserting covered cells to the nearby meta-cell path, boolean 
+            Number of trajectories 
         prop_insert
-            Proportion of cells to be incorporated in insertion
+            Proportion of cells to be incorporated in insertion, no cell to be inserted if set to 0, default 0
         """ 
 
         # self.meta_cell_construction(n_clusters = num_metacells, include_unspliced = include_unspliced,
         #                             standardize = standardize, **kwargs)
-        self.meta_cell_construction(flavor = flavor, n_clusters = num_metacells, resolution = resolution, include_unspliced = True, standardize = True, **kwargs)
+        self.meta_cell_construction(flavor = flavor, n_clusters = num_metacells, resolution = resolution, **kwargs)
 
         self.meta_cell_graph(k_neighs = n_neighs, **kwargs)
-        self.meta_paths_finding(threshold = threshold, cutoff_length = cutoff_length, length_bias = length_bias, **kwargs)
-        self.first_order_pt(num_trajs = num_trajs, insertion = insertion, prop_insert = prop_insert)
+        self.meta_paths_finding(threshold = threshold, cutoff_length = cutoff_length, length_bias = length_bias, mode = mode, **kwargs)
+        self.first_order_pt(num_trajs = num_trajs, prop_insert = prop_insert)
