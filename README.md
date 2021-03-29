@@ -7,7 +7,7 @@ CellPath v0.1.0
 Developed by Ziqi Zhang
 
 ## Description
-CellPath is a single cell trajectory inference method that infers cell developmental trajectory using single-cell RNA Sequencing data and RNA-velocity data. The preprint is posted on bioarxiv: https://www.biorxiv.org/content/10.1101/2020.09.30.321125v1?rss=1
+CellPath is a single cell trajectory inference method that infers cell developmental trajectory using single-cell RNA Sequencing data and RNA-velocity data. The preprint is posted on bioarxiv: https://www.biorxiv.org/content/10.1101/2020.09.30.321125v2
 
 ## News
 Include leiden algorithm for meta-cell clustering, which is more suitable for datasets with intricate trajectories. You can specify the clustering algorithm you use with either `flavor = "leiden"` or `flavor = "k-means"` in `cellpath.meta_cell_construction()` or `cellpath.all_in_one()`, please check the `run_cellpath.ipynb` for more details.
