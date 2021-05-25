@@ -22,7 +22,7 @@ scipy >= 1.4.1
 
 pandas >= 1.0.3
 
-sklearn >= 0.22.1
+scikit-learn >= 0.22.1
 
 anndata >= 0.7.1
 
@@ -45,6 +45,7 @@ git clone https://github.com/PeterZZQ/CellPaths.git
 And run 
 
 ```
+cd CellPaths/
 pip install .
 ```
 
