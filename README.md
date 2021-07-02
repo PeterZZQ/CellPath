@@ -36,6 +36,15 @@ rpy2 >= 3.3.0 (optional, for principal curve only)
 ```
 
 ## Installation
+
+### Install from pypi
+
+```
+pip install cellpath
+```
+
+### Install from github
+
 Clone the repository with
 
 ```
