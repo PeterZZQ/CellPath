@@ -18,17 +18,18 @@ URL = 'https://github.com/PeterZZQ/CellPath'
 EMAIL = 'zhangziqibuaa@gmail.edu'
 AUTHOR = 'Ziqi Zhang'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1dev'
+VERSION = '0.2dev'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'requests', 'maya', 'records',
     'numpy>=1.18.2', 
+    'networkx>=2.5',
     'scipy>=1.4.1', 
-    'pandas>=1.0.3', 
+    'pandas>=1.1.5', 
     'scikit-learn>=0.22.1', 
-    'anndata>=0.7.1', 
-    'scvelo>=0.2.0', 
+    'anndata>=0.7.6', 
+    'scvelo>=0.2.3', 
     'statsmodels>=0.12.1', 
     'seaborn>=0.10.0',
     'matplotlib>=3.2.1',

@@ -1,0 +1,10 @@
+test/
+results/
+example_data/simulated/Symsim
+example_data/simulated/Dyngen
+example_data/real/
+cellpath/__pycache__
+cellpath/diffu.py
+cellpath.egg-info
+dist
+setup.cfg

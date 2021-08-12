@@ -1,1 +1,2 @@
 v0.1dev, 2020-10-6 -- Initial release
+v0.2dev, 2021-8-12 -- Solve bugs, optimize code, include hierarchical clustering

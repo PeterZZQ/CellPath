@@ -134,14 +134,32 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
     """
 
     # eliminate cut_off
+    filtered_paths = {}
+    
+    """
     if cut_off != None:
         print("cut off small paths and conduct quality control")
-        paths = {x:y for x,y in paths.items() if (len(y) > cut_off) and (opt_value[y[0]][y[-1]]/len(y) < threshold * max_w)}
+        filtered_paths = {x:y for x,y in paths.items() if (len(y) > cut_off) and (opt_value[y[0]][y[-1]]/len(y) < threshold * max_w)}
     else:
         print("conduct quality control")
-        paths = {x:y for x,y in paths.items() if (opt_value[y[0]][y[-1]]/len(y) < threshold * max_w)}
+        filtered_paths = {x:y for x,y in paths.items() if (opt_value[y[0]][y[-1]]/len(y) < threshold * max_w)}
+    """
+
+    print("conduct quality control")
+    for x,y in paths.items():
+        if len(y) > 0: 
+            ave_weight = opt_value[y[0]][y[-1]]/len(y) 
+        else:
+            ave_weight = 0
+        
+        if ave_weight < threshold * max_w:
+            if cut_off == None:
+                filtered_paths[x] = y
+            elif len(y) > cut_off:
+                filtered_paths[x] = y
+            
     
-    paths_tmp = paths.copy()
+    paths_tmp = filtered_paths.copy()
     path_cover = nodes
 
     nodes_visit = np.zeros(nodes)
@@ -158,7 +176,7 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
         if path_cover != 0:
             del paths_tmp[path_idx]
             if verbose:
-                print('start_end: ', path_idx,', len: ', len(paths[path_idx]), 'newly covered:', path_cover, end = '\n')
+                print('start_end: ', path_idx,', len: ', len(filtered_paths[path_idx]), 'newly covered:', path_cover, end = '\n')
         # maximal output        
         if max_trajs != None:
             traj_count += 1
@@ -168,7 +186,7 @@ def greedy_selection(nodes, paths, opt_value, adj_matrix = None, threshold = 0.6
         greedy_paths.append(path_idx)
     greedy_paths = greedy_paths[:-1]
     print("Finished")
-    return greedy_paths, paths
+    return greedy_paths, filtered_paths
 
 
 def print_score(greedy_paths, paths, adj_matrix, paths_num = None, normalizor = None):

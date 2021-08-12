@@ -154,7 +154,7 @@ def purity_count(cellpath_obj = None, adata = None, method = "CellPath", paths =
         if slingshot_result is None:
             raise ValueError("No Slingshot result provided") 
 
-        trajs = len(slingshot_result["pseudotime"].columns)
+        trajs = len(slingshot_result.columns)
 
     else:
         raise ValueError("Choose CellPath or Slingshot")
@@ -178,7 +178,7 @@ def purity_count(cellpath_obj = None, adata = None, method = "CellPath", paths =
             traj = traj.astype('int')
 
         elif method == "Slingshot":
-            traj = np.where(~np.isnan(slingshot_result["pseudotime"][i].values))[0]
+            traj = np.where(~np.isnan(slingshot_result[i].values))[0]
 
         belongings = adata[traj,:].obs['simulation_i']
         idx = belongings.value_counts().index
@@ -194,13 +194,18 @@ def average_entropy(bmk_belongings):
         Calculate average entropy, benchmark the purity of the inference result
     """
     aver_entropy = 0
+    count = 0
     for traj in bmk_belongings.index:
         prop = bmk_belongings.loc[traj,:].values
-        prop = prop/np.sum(prop) 
-        entropy_traj = - np.sum(prop * np.log(prop))
+        if np.sum(prop) == 0:
+            continue 
+        else:
+            prop = prop/np.sum(prop) 
+        entropy_traj = - np.sum(prop * np.log(prop + 1e-6))
         aver_entropy += entropy_traj
+        count += 1
     
-    aver_entropy = aver_entropy/bmk_belongings.shape[0]
+    aver_entropy = aver_entropy/count
     max_entropy = np.ones([1, bmk_belongings.shape[1]]) * 1/bmk_belongings.shape[1] 
     max_entropy = - np.sum(max_entropy * np.log(max_entropy))
 

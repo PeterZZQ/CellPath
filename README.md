@@ -20,17 +20,19 @@ numpy >= 1.18.2
 
 scipy >= 1.4.1
 
-pandas >= 1.0.3
+networkx>=2.5
+
+pandas >= 1.1.5
 
 scikit-learn >= 0.22.1
 
-anndata >= 0.7.1
+anndata >= 0.7.6
 
-scvelo >= 0.2.0
+scvelo >= 0.2.3
 
 seaborn >= 0.10.0
 
-statsmodels >= 0.11.1 (optional, for differentially expressed gene analysis)
+statsmodels >= 0.12.1 (optional, for differentially expressed gene analysis)
 
 rpy2 >= 3.3.0 (optional, for principal curve only)
 ```
@@ -111,7 +113,9 @@ cellpath_obj.pseudo_order
 ## Contents
 
 * `CellPath/` contains the python code for the package
-* `real_data/` contains three real datasets, used in the paper, dentate-gyrus dataset, pancreatic endocrinogenesis dataset and human forebrain dataset. Files in real_data folder can be downloaded from [dropbox](https://www.dropbox.com/sh/nix4wnoiwda5id5/AACTxvGTQ82UzwMJs2IWSriKa?dl=0)
-* `sim_data/` contains four simulated datasets, used in the paper, with **trifurcating**, **double-batches**, **cycle-tree** and **multiple-cycles** structure. 
-    * **Trifurcating** and **double-batches** datasets are generated using [`dyngen`](https://github.com/dynverse/dyngen) 
-    * **cycle-tree** and **multiple-cycles** datasets are generated using `symsim`.
+* `example_data/real/` contains four real datasets, used in the paper, dentate-gyrus dataset, pancreatic endocrinogenesis dataset and human forebrain dataset. Files in real_data folder can be downloaded from [dropbox](https://www.dropbox.com/sh/s6hzrxv1nojf35t/AADROI0j16a1MtJLbHE5e1Hpa?dl=0)
+* `example_data/simulated/` contains simulated cycle-tree dataset
+
+
+## Test in manuscript
+Test script for the result in manuscript can be found with the [link](https://github.com/PeterZZQ/CellPath_test)

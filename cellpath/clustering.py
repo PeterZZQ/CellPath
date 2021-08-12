@@ -7,7 +7,7 @@ import cellpath.leiden as leiden
 def cluster_cells(
         adata, n_clusters = None, resolution = 30,
         n_comps = 30, include_unspliced = True, 
-        standardize = True, seed = 0, flavor = "k-means"
+        standardize = True, seed = 0, flavor = "hier"
         ):
     """\
     Cluster cells into clusters, using K-means
@@ -27,7 +27,7 @@ def cluster_cells(
         Array of dim (number of samples) that stores the subgroup id
         (`0`, `1`, ...) for each cell.
     """
-    from sklearn.cluster import KMeans
+    from sklearn.cluster import KMeans, AgglomerativeClustering
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
     from sklearn.pipeline import Pipeline
@@ -64,11 +64,16 @@ def cluster_cells(
             X_concat_pca = pca.fit_transform(X_concat)
             X_pca = pca.fit_transform(X_spliced)
             if flavor == "k-means":
+                print("using k-means")
                 groups = kmeans.fit_predict(X_concat_pca)
             elif flavor == "leiden":
+                print("using leiden")
                 groups = leiden.cluster_cells_leiden(X = X_concat_pca, resolution = resolution, random_state = seed)
+            elif flavor == "hier":
+                print("using hier")
+                groups = AgglomerativeClustering(n_clusters = n_clusters, affinity = "euclidean").fit(X_concat_pca).labels_            
             else:
-                raise ValueError("flavor can only be `k-means' or `leiden'")
+                raise ValueError("flavor can only be `k-means', `leiden' or `hier'")
             
             adata.obsm['X_pca'] = X_pca
                 
@@ -77,11 +82,17 @@ def cluster_cells(
             adata.obsm['X_pca'] = X_pca
             
             if flavor == "k-means":
+                print("using k-means")
                 groups = kmeans.fit_predict(X_pca)
             elif flavor == "leiden":
+                print("using leiden")
                 groups = leiden.cluster_cells_leiden(X = X_pca, resolution = resolution, random_state = seed)
+            elif flavor == "hier":
+                print("using hier")
+                groups = AgglomerativeClustering(n_clusters = n_clusters, affinity = "euclidean").fit(X_pca).labels_            
+            
             else:
-                raise ValueError("flavor can only be `k-means' or `leiden'")
+                raise ValueError("flavor can only be `k-means', `leiden' or `hier'")
 
         velo_matrix = adata.layers["velocity"]
         # predict gene expression data

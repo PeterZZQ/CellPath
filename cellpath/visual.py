@@ -164,7 +164,7 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
         raise ValueError("basis incorrect")
 
 
-    for i in range(trajs):
+    for i in range(min(trajs, cellpath_obj.pseudo_order.shape[1])):
         sorted_pt = cellpath_obj.pseudo_order["traj_"+str(i)].dropna(axis = 0).sort_values()
         # traj = [int(x.split("_")[1]) for x in sorted_pt.index]
         # X_traj = adata.obsm[basis][traj,:]

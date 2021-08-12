@@ -279,7 +279,8 @@ class CellPath():
             num_trajs = len(self.greedy_order)
         elif num_trajs > len(self.greedy_order):
             print(len(self.greedy_order))
-            raise ValueError("number of trajectory to be selected larger than maximum number")
+            num_trajs = len(self.greedy_order)
+            # raise ValueError("number of trajectory to be selected larger than maximum number")
         self.pseudo_order = pd.DataFrame(data = np.nan, index = self.adata.obs.index, columns = ["traj_" + str(x) for x in range(num_trajs)]) 
 
         if prop_insert > 0:
