@@ -231,6 +231,7 @@ def first_order_approx_pt(cellpath_obj, basis = "pca", trajs = 4, figsize= (20,2
     
     if save_as!= None:
         fig.savefig(save_as, bbox_inches = 'tight')
+    plt.tight_layout()
     
     plt.show()     
 

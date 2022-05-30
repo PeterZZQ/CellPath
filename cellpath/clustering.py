@@ -133,7 +133,7 @@ def meta_cells(adata, kernel = 'rbf', alpha = 1, gamma = 0.3):
         raise ValueError("please cluster cells first") 
 
     from sklearn.kernel_ridge import KernelRidge
-    k = KernelRidge(alpha, kernel, gamma)
+    k = KernelRidge(alpha = alpha, kernel = kernel, gamma = gamma)
     groups = adata.obs['groups'].values
     n_clusters = int(np.max(groups) + 1)
     X_pca = adata.obsm['X_pca']
